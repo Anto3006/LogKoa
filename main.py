@@ -67,6 +67,7 @@ def guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45):
 
 def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
     modelos = os.listdir('Modelos')
+    modelos.sort()
     resultados = pd.DataFrame(columns=["R2","RMSE","MUE","MSE"])
     for nombreModelo in modelos:
         modelo = pickle.load(open("Modelos/"+nombreModelo, 'rb'))
@@ -76,7 +77,12 @@ def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
         evaluacion = evaluarModelo(modelo,x_2,y,nombreModelo,generarFigura=generarFigura)
         resultados = resultados.append(evaluacion,ignore_index=True)
     resultados.index = modelos
-    resultados.to_csv(nombreArchivo+"_"+tipo+".csv")
+    modo = "w"
+    if nombreArchivo+".xlsx" in os.listdir():
+        modo = "a"
+    writer = pd.ExcelWriter(nombreArchivo+".xlsx",engine="openpyxl",mode=modo)
+    resultados.to_excel(writer,sheet_name=tipo,engine="openpyxl")
+    writer.close()
         
 
 def obtenerModelo(nombreModelo,hyperparametros):
@@ -113,7 +119,9 @@ x_external = x_external[x_train.columns]
 x_test_external = pd.concat([x_test,x_external],ignore_index=True,axis=0)
 y_test_external = pd.concat([y_test,y_external])
 
-x_contaminantes = pd.read_csv("Datasets/contaminants_descriptors.csv",index_col=0).drop(columns=["smiles","Cas_No"])
+x_total = pd.concat([x_train,x_test,x_external],ignore_index=True,axis=0)
+y_total = pd.concat([y_train,y_test,y_external],ignore_index=True,axis=0)
+
 
 
 
@@ -152,5 +160,5 @@ archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
 
 #guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
 
-evaluarModelosGuardados(x_test,y_test,"evaluacion_modelos",tipo="test",generarFigura=False)
+evaluarModelosGuardados(x_total,y_total,"evaluacion_modelos",tipo="total",generarFigura=False)
 

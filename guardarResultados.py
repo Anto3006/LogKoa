@@ -7,6 +7,12 @@ import shap
 def mean_signed_error(y,y_pred):
     return ((y-y_pred)/len(y)).mean()
 
+def max_positive_error(y,y_pred):
+    return (y-y_pred).max()
+
+def max_negative_error(y,y_pred):
+    return (y-y_pred).min()
+
 def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True):
     evaluacion = {}
     y_pred = modelo.predict(x)
@@ -14,10 +20,14 @@ def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True)
     rmse = mean_squared_error(y, y_pred, squared=False)
     mue = mean_absolute_error(y,y_pred)
     mse = mean_signed_error(y,y_pred)
+    mpe = max_positive_error(y,y_pred)
+    mne = max_negative_error(y,y_pred)
     evaluacion["R2"] = r2
     evaluacion["RMSE"] = rmse
     evaluacion["MUE"] = mue
     evaluacion["MSE"] = mse
+    evaluacion["MPE"] = mpe
+    evaluacion["MNE"] = mne
     valoresPredichos = pd.DataFrame()
     valoresPredichos["y"] = y
     valoresPredichos["y_pred"] = y_pred
