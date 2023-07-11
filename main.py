@@ -12,6 +12,8 @@ from guardarResultados import generarShap
 import re
 import pickle
 import os
+import json
+import sys
 
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
@@ -19,8 +21,6 @@ ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
 
 
 def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparametros,n_features="best"):
-    
-    
     funciones_score = {"f_regression":f_regression,"r_regression":r_regression,"mutual_info_regression":mutual_info_regression}
     for funcion in funciones_score:
         nombreArchivoResultadosTotales = nombreModelo+"_"+"k_best_"+funcion
@@ -102,6 +102,20 @@ def obtenerModelo(nombreModelo,hyperparametros):
     return modelo
 
 
+if __name__=="__main__":
+    modo = sys.argv[1]
+    if modo == "search":
+        #efectuar grid search
+        pass
+    elif modo == "train":
+        #entrenar y guardar modelos de acuerdo al cross validation
+        pass
+    elif modo == "evaluar":
+        #evaluar modelos
+        pass
+    elif modo == "predecir":
+        #predecir resultados
+        pass
 
 
 datos = pd.read_csv("Datasets/logKoa_descriptors_total.csv")
@@ -123,17 +137,12 @@ x_total = pd.concat([x_train,x_test,x_external],ignore_index=True,axis=0)
 y_total = pd.concat([y_train,y_test,y_external],ignore_index=True,axis=0)
 
 
+archivoJson = open("parametrosGridSearch.json","r")
+datosGridSearch = json.load(archivoJson)
 
-
-n_trees = [30,50,100,150,200,300,500,700,1000]
-c_values = [0.001,0.002,0.005,0.007,0.01,0.02,0.05,0.07,0.1,0.2,0.5,0.7,1.0,2.0,5.0,10.0]
-n_estimators = [100,500,1000]
-learning_rate = [0.05,0.1,0.3]
-max_depth = [5,10,20]
-
-dic_xgboost = {"n_estimators":n_estimators,"learning_rate":learning_rate,"max_depth":max_depth}
-dic_forest = {"n_estimators":n_trees}
-dic_SVM = {"C":c_values}
+dic_xgboost = datosGridSearch["xgboost"]
+dic_forest = datosGridSearch["random_forest"]
+dic_SVM = datosGridSearch["SVM"]
 
 """
 modelo = LinearRegression()
@@ -156,9 +165,9 @@ busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features=10)
 """
 
 
-archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
+#archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
 
 #guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
 
-evaluarModelosGuardados(x_total,y_total,"evaluacion_modelos",tipo="total",generarFigura=False)
+#evaluarModelosGuardados(x_total,y_total,"evaluacion_modelos",tipo="total",generarFigura=False)
 
