@@ -13,9 +13,8 @@ def max_positive_error(y,y_pred):
 def max_negative_error(y,y_pred):
     return (y-y_pred).min()
 
-def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True):
+def realizarEvaluaciones(y,y_pred):
     evaluacion = {}
-    y_pred = modelo.predict(x)
     r2 = r2_score(y,y_pred)
     rmse = mean_squared_error(y, y_pred, squared=False)
     mue = mean_absolute_error(y,y_pred)
@@ -28,18 +27,25 @@ def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True)
     evaluacion["MSE"] = mse
     evaluacion["MPE"] = mpe
     evaluacion["MNE"] = mne
+    return evaluacion
+
+def generarFiguraEvaluacion(y,y_pred,evaluacion,nombreBase,tipo):
+    plt.plot(y_pred,y,'ro')
+    plt.axline([0, 0], slope=1)
+    plt.text(0,10,"R2="+str(round(evaluacion["R2"],2)))
+    plt.text(0,9,"RMSE="+str(round(evaluacion["RMSE"],2)))
+    plt.savefig(nombreBase+"_"+tipo+".png")
+    plt.clf()
+    
+def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True):
+    y_pred = modelo.predict(x)
+    evaluacion = realizarEvaluaciones(y,y_pred)
     valoresPredichos = pd.DataFrame()
     valoresPredichos["y"] = y
     valoresPredichos["y_pred"] = y_pred
     valoresPredichos.to_csv("valoresPredichos_" + tipo + "_" + nombreBase + ".csv")
-    #Marcar outlier del test
     if generarFigura:
-        plt.plot(y_pred,y,'ro')
-        plt.axline([0, 0], slope=1)
-        plt.text(0,10,"R2="+str(round(r2,2)))
-        plt.text(0,9,"RMSE="+str(round(rmse,2)))
-        plt.savefig(nombreBase+"_"+tipo+".png")
-        plt.clf()
+        generarFiguraEvaluacion(y,y_pred,evaluacion,nombreBase,tipo)
     return evaluacion
 
 #Genera los graficos SHAP para un modelo
