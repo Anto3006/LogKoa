@@ -11,12 +11,11 @@ from featureSelection import hyperparametrosCV
 from guardarResultados import generarShap
 import re
 import pickle
+import os
 
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
 
-evaluacion = {"Modelo":[],"Feature Selection":[],"Tipo":[],"R2":[],"RMSE":[]}
-prediccion = pd.DataFrame()
 
 
 def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparametros,n_features="best"):
@@ -48,9 +47,8 @@ def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparamet
     guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_backward",mejorResultado,mejoresHyper,features,numeroFeatures)
     
 
-def realizarPruebasMejoresCV(archivo,x_train,y_train,x_test,y_test,nombreArchivo,tipo="test",soloPrediccion=False,threshold=0.45):
+def guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45):
     datos = archivo
-    evaluacion_local = evaluacion
     for index, row in datos.iterrows():
         if str(row["Score"]) != " " and float(row["Score"]) < threshold:
             hyp = str(row["Hyperparametros"])
@@ -64,27 +62,22 @@ def realizarPruebasMejoresCV(archivo,x_train,y_train,x_test,y_test,nombreArchivo
             features = [feature for feature in features if feature != ""]
             print(features)
             x_train_2 = x_train[features]
-            x_test_2 = x_test[features]
             modelo.fit(x_train_2,y_train)
-            pickle.dump(modelo,open(nombreModelo+"_"+row["Feature Selection"]+".sav",'wb'))
-            if not soloPrediccion:
-                print(row["Modelo"], row["Feature Selection"], hyperparametrosCV(modelo,x_train_2,y_train))
-                evaluacion_local["Modelo"].append(row["Modelo"])
-                evaluacion_local["Feature Selection"].append(row["Feature Selection"])
-                if tipo == "test":
-                    evaluacion_local["Modelo"].append(row["Modelo"])
-                    evaluacion_local["Feature Selection"].append(row["Feature Selection"])
-                    evaluacion_local["Tipo"].append("Train")
-                    evaluarModelo(modelo,evaluacion_local,x_train_2,y_train,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp)
-                generarShap(modelo,nombreModelo+"_"+row["Feature Selection"]+"_"+tipo,x_train_2,x_test_2)
-                evaluacion_local["Tipo"].append(tipo.capitalize())
-                evaluarModelo(modelo,evaluacion_local,x_test_2,y_test,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp,train=False,tipo=tipo)
-            else:
-                predecirResultado(modelo,x_test_2,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp)
-    if not soloPrediccion:
-        pd.DataFrame(evaluacion).to_csv(nombreArchivo)
-    else:
-        prediccion.to_csv(tipo+"_prediccion.csv")
+            pickle.dump(modelo,open("Modelos/"+nombreModelo+"_"+row["Feature Selection"]+".sav",'wb'))
+
+def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
+    modelos = os.listdir('Modelos')
+    resultados = pd.DataFrame(columns=["R2","RMSE","MUE","MSE"])
+    for nombreModelo in modelos:
+        modelo = pickle.load(open("Modelos/"+nombreModelo, 'rb'))
+        nombreModelo = ".".join(nombreModelo.split(".")[0:-1])
+        features = modelo.feature_names_in_
+        x_2 = x[features]
+        evaluacion = evaluarModelo(modelo,x_2,y,nombreModelo,generarFigura=generarFigura)
+        resultados = resultados.append(evaluacion,ignore_index=True)
+    resultados.index = modelos
+    resultados.to_csv(nombreArchivo+"_"+tipo+".csv")
+        
 
 def obtenerModelo(nombreModelo,hyperparametros):
     modelo = None
@@ -95,16 +88,13 @@ def obtenerModelo(nombreModelo,hyperparametros):
     elif nombreModelo == "SVM":
         modelo = LinearSVR(random_state=3006,max_iter=10000)
     elif nombreModelo == "XGBoost":
-        modelo = xgb.XGBRegressor(booster="gbtree",tree_method="exact",grow_policy="depthwise",random_state=3006)
+        modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
     
     if hyperparametros != "":
         dic_hyperparametros = procesarHyperparametros(hyperparametros)
         modelo.set_params(**dic_hyperparametros)
     return modelo
 
-def predecirResultado(modelo,x,nombreModelo):
-    y_pred = modelo.predict(x)
-    prediccion[nombreModelo] = y_pred
 
 
 
@@ -121,7 +111,6 @@ x_external = datosTest2.drop(columns=["No.","Compound.name","log_Koa","smiles","
 x_external = x_external[x_train.columns]
 
 x_test_external = pd.concat([x_test,x_external],ignore_index=True,axis=0)
-print(x_test_external)
 y_test_external = pd.concat([y_test,y_external])
 
 x_contaminantes = pd.read_csv("Datasets/contaminants_descriptors.csv",index_col=0).drop(columns=["smiles","Cas_No"])
@@ -161,7 +150,7 @@ busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features=10)
 
 archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
 
-realizarPruebasMejoresCV(archivo,x_train,y_train,x_test_external,y_test_external,"evaluacion_test_external_no_limit.csv",tipo="test_external",soloPrediccion=False)
+#guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
 
-
+evaluarModelosGuardados(x_test,y_test,"evaluacion_modelos",tipo="test",generarFigura=False)
 

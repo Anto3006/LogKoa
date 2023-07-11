@@ -1,31 +1,36 @@
 import pandas as pd
 import numpy as np
-from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 import shap
 
-def evaluarModelo(modelo,dic_evaluacion,x,y,nombreBase="figura",train=True,tipo="test",generarFigura=True):
-    r2 = modelo.score(x,y)
-    dic_evaluacion["R2"].append(r2)
-    adicional = "train"
-    if not train:
-        adicional = tipo
+def mean_signed_error(y,y_pred):
+    return ((y-y_pred)/len(y)).mean()
+
+def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True):
+    evaluacion = {}
     y_pred = modelo.predict(x)
-    diff = np.abs(y.to_numpy()-y_pred)
+    r2 = r2_score(y,y_pred)
+    rmse = mean_squared_error(y, y_pred, squared=False)
+    mue = mean_absolute_error(y,y_pred)
+    mse = mean_signed_error(y,y_pred)
+    evaluacion["R2"] = r2
+    evaluacion["RMSE"] = rmse
+    evaluacion["MUE"] = mue
+    evaluacion["MSE"] = mse
     valoresPredichos = pd.DataFrame()
     valoresPredichos["y"] = y
     valoresPredichos["y_pred"] = y_pred
-    valoresPredichos.to_csv("valoresPredichos_" + adicional + "_" + nombreBase + ".csv")
-    rmse = mean_squared_error(y, y_pred, squared=False)
-    dic_evaluacion["RMSE"].append(rmse)
+    valoresPredichos.to_csv("valoresPredichos_" + tipo + "_" + nombreBase + ".csv")
     #Marcar outlier del test
     if generarFigura:
         plt.plot(y_pred,y,'ro')
         plt.axline([0, 0], slope=1)
         plt.text(0,10,"R2="+str(round(r2,2)))
         plt.text(0,9,"RMSE="+str(round(rmse,2)))
-        plt.savefig(nombreBase+"_"+adicional+".png")
+        plt.savefig(nombreBase+"_"+tipo+".png")
         plt.clf()
+    return evaluacion
 
 #Genera los graficos SHAP para un modelo
 def generarShap(modelo, nombreBase, x_train, x_test):
