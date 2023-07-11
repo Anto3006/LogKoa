@@ -8,12 +8,15 @@ from guardarResultados import guardarResultadosBusqueda, evaluarModelo
 from sklearn.feature_selection import r_regression, f_regression, mutual_info_regression
 from hyperparametros import gridSearch
 from featureSelection import hyperparametrosCV
+from guardarResultados import generarShap
 import re
+import pickle
 
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
 
-evaluacion = {"Modelo":[],"Feature Selection":[],"Train/Test":[],"R2":[],"RMSE":[]}
+evaluacion = {"Modelo":[],"Feature Selection":[],"Tipo":[],"R2":[],"RMSE":[]}
+prediccion = pd.DataFrame()
 
 
 def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparametros,n_features="best"):
@@ -45,15 +48,16 @@ def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparamet
     guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_backward",mejorResultado,mejoresHyper,features,numeroFeatures)
     
 
-def realizarPruebasMejoresCV(archivo,x_train,y_train,x_test,y_test,tipo="test"):
+def realizarPruebasMejoresCV(archivo,x_train,y_train,x_test,y_test,nombreArchivo,tipo="test",soloPrediccion=False,threshold=0.45):
     datos = archivo
     evaluacion_local = evaluacion
     for index, row in datos.iterrows():
-        if str(row["Score"]) != " " and float(row["Score"]) < 0.6:
+        if str(row["Score"]) != " " and float(row["Score"]) < threshold:
             hyp = str(row["Hyperparametros"])
             if hyp == "nan" or hyp == " ":
                 hyp = ""
             nombreModelo = row["Modelo"].strip()
+            print(nombreModelo)
             modelo = obtenerModelo(nombreModelo,hyp)
             features = re.sub(r'\s+', ' ', row["Features"])
             features = features.split(" ")
@@ -62,16 +66,25 @@ def realizarPruebasMejoresCV(archivo,x_train,y_train,x_test,y_test,tipo="test"):
             x_train_2 = x_train[features]
             x_test_2 = x_test[features]
             modelo.fit(x_train_2,y_train)
-            print(row["Modelo"], row["Feature Selection"], hyperparametrosCV(modelo,x_train_2,y_train))
-            evaluacion_local["Modelo"].append(row["Modelo"])
-            evaluacion_local["Modelo"].append(row["Modelo"])
-            evaluacion_local["Feature Selection"].append(row["Feature Selection"])
-            evaluacion_local["Feature Selection"].append(row["Feature Selection"])
-            evaluacion_local["Tipo"].append("Train")
-            evaluarModelo(modelo,evaluacion_local,x_train_2,y_train,row["Modelo"]+"_"+row["Feature Selection"]+"_"+hyp,guardarValoresPredichos=True)
-            evaluacion_local["Tipo"].append(tipo.capitalize())
-            evaluarModelo(modelo,evaluacion_local,x_test_2,y_test,row["Modelo"]+"_"+row["Feature Selection"]+"_"+hyp,train=False,tipo=tipo,guardarValoresPredichos=True)
-    pd.DataFrame(evaluacion).to_csv("evaluacion_external_total_no_limit.csv")
+            pickle.dump(modelo,open(nombreModelo+"_"+row["Feature Selection"]+".sav",'wb'))
+            if not soloPrediccion:
+                print(row["Modelo"], row["Feature Selection"], hyperparametrosCV(modelo,x_train_2,y_train))
+                evaluacion_local["Modelo"].append(row["Modelo"])
+                evaluacion_local["Feature Selection"].append(row["Feature Selection"])
+                if tipo == "test":
+                    evaluacion_local["Modelo"].append(row["Modelo"])
+                    evaluacion_local["Feature Selection"].append(row["Feature Selection"])
+                    evaluacion_local["Tipo"].append("Train")
+                    evaluarModelo(modelo,evaluacion_local,x_train_2,y_train,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp)
+                generarShap(modelo,nombreModelo+"_"+row["Feature Selection"]+"_"+tipo,x_train_2,x_test_2)
+                evaluacion_local["Tipo"].append(tipo.capitalize())
+                evaluarModelo(modelo,evaluacion_local,x_test_2,y_test,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp,train=False,tipo=tipo)
+            else:
+                predecirResultado(modelo,x_test_2,nombreModelo+"_"+row["Feature Selection"]+"_"+hyp)
+    if not soloPrediccion:
+        pd.DataFrame(evaluacion).to_csv(nombreArchivo)
+    else:
+        prediccion.to_csv(tipo+"_prediccion.csv")
 
 def obtenerModelo(nombreModelo,hyperparametros):
     modelo = None
@@ -89,18 +102,30 @@ def obtenerModelo(nombreModelo,hyperparametros):
         modelo.set_params(**dic_hyperparametros)
     return modelo
 
+def predecirResultado(modelo,x,nombreModelo):
+    y_pred = modelo.predict(x)
+    prediccion[nombreModelo] = y_pred
 
 
-datos = pd.read_csv("logKoa_descriptors_total.csv")
+
+datos = pd.read_csv("Datasets/logKoa_descriptors_total.csv")
 
 x_train,y_train,x_test,y_test = procesarDatos(datos,scale=False)
 
 #x_train_scaled,_,x_test_scaled,_ = procesarDatos(datos,scale=True)
 
-datosTest2 = pd.read_csv("externalCanon_descriptors_total_final.csv")
-datosTest2.index = [475+i for i in range(len(datosTest2["No."]))]
+datosTest2 = pd.read_csv("Datasets/externalCanon_descriptors_total_final_2.csv")
+datosTest2.index = datosTest2["No."]
 y_external = datosTest2["log_Koa"]
 x_external = datosTest2.drop(columns=["No.","Compound.name","log_Koa","smiles","CAS.RN"])
+x_external = x_external[x_train.columns]
+
+x_test_external = pd.concat([x_test,x_external],ignore_index=True,axis=0)
+print(x_test_external)
+y_test_external = pd.concat([y_test,y_external])
+
+x_contaminantes = pd.read_csv("Datasets/contaminants_descriptors.csv",index_col=0).drop(columns=["smiles","Cas_No"])
+
 
 
 n_trees = [30,50,100,150,200,300,500,700,1000]
@@ -113,7 +138,7 @@ dic_xgboost = {"n_estimators":n_estimators,"learning_rate":learning_rate,"max_de
 dic_forest = {"n_estimators":n_trees}
 dic_SVM = {"C":c_values}
 
-
+"""
 modelo = LinearRegression()
 nombreModelo = "Linear Regression"
 busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features=10)
@@ -131,12 +156,12 @@ busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features=10)
 modelo = LinearSVR(random_state=3006,max_iter=10000)
 nombreModelo = "SVM"
 busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features=10)
-
-
 """
-archivo = pd.read_csv("cross_validation_no_limit.csv")
 
-realizarPruebasMejoresCV(archivo,x_train,y_train,x_external,y_external,tipo="external")
-"""
+
+archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
+
+realizarPruebasMejoresCV(archivo,x_train,y_train,x_test_external,y_test_external,"evaluacion_test_external_no_limit.csv",tipo="test_external",soloPrediccion=False)
+
 
 
