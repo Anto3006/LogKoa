@@ -14,6 +14,7 @@ import pickle
 import os
 import json
 import sys
+from lectorParametros import LectorParametros
 
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
@@ -104,17 +105,52 @@ def obtenerModelo(nombreModelo,hyperparametros):
 
 if __name__=="__main__":
     modo = sys.argv[1]
+    lector = LectorParametros()
+    diccionarioValores = lector.leerParametros()
     if modo == "search":
-        #efectuar grid search
+        nombreArchivo = diccionarioValores["datos"]
+        datos = pd.read_csv("Datasets/"+nombreArchivo)
+        x_train,y_train,x_test,y_test = procesarDatos(datos,scale=False)
+        archivoJson = open("parametrosGridSearch.json","r")
+        datosGridSearch = json.load(archivoJson)
+
+        dic_xgboost = datosGridSearch["xgboost"]
+        dic_forest = datosGridSearch["random_forest"]
+        dic_SVM = datosGridSearch["SVM"]
+        modelo = LinearRegression()
+        nombreModelo = "Linear Regression"
+        busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features="best")
+
+
+        modelo = RandomForestRegressor(random_state=3006)
+        nombreModelo = "Random Forest"
+        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_forest,n_features="best")
+
+
+        modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
+        nombreModelo = "XGBoost"
+        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features="best")
+
+        modelo = LinearSVR(random_state=3006,max_iter=10000)
+        nombreModelo = "SVM"
+        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features="best")
+        guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
         pass
     elif modo == "train":
-        #entrenar y guardar modelos de acuerdo al cross validation
+        nombreArchivoCrossValidation = diccionarioValores["validacion"]
+        nombreArchivoDatos = diccionarioValores["datos"]
+        datos = pd.read_csv("Datasets/"+nombreArchivo)
+        x_train,y_train,_,_ = procesarDatos(datos,scale=False)
+        archivo = pd.read_excel("CrossValidation/"+nombreArchivo)
+        guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.6)
         pass
     elif modo == "evaluar":
-        #evaluar modelos
-        pass
-    elif modo == "predecir":
-        #predecir resultados
+        nombreArchivoDatos = diccionarioValores["datos"]
+        tipo = diccionarioValores["tipo"]
+        datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
+        y = datos["log_Koa"]
+        x = datos.drop(columns=["log_Koa"])
+        evaluarModelosGuardados(x,y,"evaluacion_modelos",tipo=tipo,generarFigura=False)
         pass
 
 
@@ -137,32 +173,6 @@ x_total = pd.concat([x_train,x_test,x_external],ignore_index=True,axis=0)
 y_total = pd.concat([y_train,y_test,y_external],ignore_index=True,axis=0)
 
 
-archivoJson = open("parametrosGridSearch.json","r")
-datosGridSearch = json.load(archivoJson)
-
-dic_xgboost = datosGridSearch["xgboost"]
-dic_forest = datosGridSearch["random_forest"]
-dic_SVM = datosGridSearch["SVM"]
-
-"""
-modelo = LinearRegression()
-nombreModelo = "Linear Regression"
-busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features=10)
-
-
-modelo = RandomForestRegressor(random_state=3006)
-nombreModelo = "Random Forest"
-busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_forest,n_features=10)
-
-
-modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
-nombreModelo = "XGBoost"
-busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features=10)
-
-modelo = LinearSVR(random_state=3006,max_iter=10000)
-nombreModelo = "SVM"
-busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features=10)
-"""
 
 
 #archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
