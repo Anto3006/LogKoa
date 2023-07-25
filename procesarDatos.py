@@ -30,25 +30,22 @@ def scaleData(scaler,dataFrame):
     return dataFrameScaled
 
 def procesarDatos(datos,scale=False):
-    y = datos["log_KOA"]
+    y = datos[datos.columns[1]]
     x = datos.copy(deep=True)
-    x.drop(columns=["log_KOA","id", "Cas_No","smiles"],inplace=True)
+    x.drop(columns=[datos.columns[1],"smiles"],inplace=True)
     x.dropna(axis=1,how="any",inplace=True)
     if scale:
         scaler = preprocessing.StandardScaler()
         x = scaleData(scaler,x)
-    x_train, x_test, y_train, y_test = train_test_split(x,y,test_size=0.15,random_state=3006)
     #Eliminar datos constantes
-    columnasConstantes = verificarConstancia(x_train)
-    x_train.drop(columns=columnasConstantes,inplace=True)
-    x_test.drop(columns=columnasConstantes,inplace=True)
+    columnasConstantes = verificarConstancia(x)
+    x.drop(columns=columnasConstantes,inplace=True)
     #Eliminar datos altamentes correlacionados
-    cor_matrix = x_train.corr().abs()
+    cor_matrix = x.corr().abs()
     upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool_))
     to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.95)]
-    x_train.drop(columns=to_drop,inplace=True)
-    x_test.drop(columns=to_drop,inplace=True)
-    return x_train,y_train,x_test,y_test
+    x.drop(columns=to_drop,inplace=True)
+    return x,y
 
 def procesarHyperparametros(hyperparametros):
     hyperparametros = re.sub(r'\s+', ' ', hyperparametros).split(" ")

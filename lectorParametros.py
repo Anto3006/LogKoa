@@ -4,7 +4,7 @@ import getopt
 class LectorParametros:
 
     def __init__(self):
-        self.argumentList = sys.argv[1:]
+        self.argumentList = sys.argv[2:]
         self.options = "d:c:t:"
         self.longOptions = ["dataset =","cross-validation =","tipo ="]
     

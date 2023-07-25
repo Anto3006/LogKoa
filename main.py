@@ -15,7 +15,8 @@ import os
 import json
 import sys
 from lectorParametros import LectorParametros
-
+from calcularDescriptores import calcularDescriptores
+from sklearn.model_selection import train_test_split
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
 
@@ -102,82 +103,78 @@ def obtenerModelo(nombreModelo,hyperparametros):
         modelo.set_params(**dic_hyperparametros)
     return modelo
 
+def busqueda(nombreArchivo):
+    datos = pd.read_csv("Datasets/"+nombreArchivo)
+    x_train,y_train = procesarDatos(datos,scale=False)
+    archivoJson = open("parametrosGridSearch.json","r")
+    datosGridSearch = json.load(archivoJson)
+
+    dic_xgboost = datosGridSearch["xgboost"]
+    dic_forest = datosGridSearch["random_forest"]
+    dic_SVM = datosGridSearch["SVM"]
+
+    modelo = LinearRegression()
+    nombreModelo = "Linear Regression"
+    busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features="best")
+
+
+    modelo = RandomForestRegressor(random_state=3006)
+    nombreModelo = "Random Forest"
+    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_forest,n_features="best")
+
+
+    modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
+    nombreModelo = "XGBoost"
+    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features="best")
+
+    modelo = LinearSVR(random_state=3006,max_iter=10000)
+    nombreModelo = "SVM"
+    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features="best")
+
+def crearDataset(datos,nombreArchivo,split,prefijo=""):
+    if split:
+        datos_train,datos_test= train_test_split(datos,test_size=0.15,random_state=3006)
+        crearDataset(datos_train,nombreArchivo,split=False,prefijo="train_")
+        crearDataset(datos_test,nombreArchivo,split=False,prefijo="test_")
+    else:
+        print(datos)
+        smiles = datos["smiles"]
+        objetivo = datos[datos.columns[1]]
+        dataset = calcularDescriptores(smiles)
+        dataset.insert(1,datos.columns[1],objetivo)
+        dataset.to_csv("Datasets/"+prefijo+"desc_"+nombreArchivo,index=False)
+
+def entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos):
+    datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
+    y_train = datos[datos.columns[1]]
+    x_train = datos.drop(columns=["smiles",datos.columns[1]])
+    archivoCV = pd.read_excel("CrossValidation/"+nombreArchivoCrossValidation)
+    guardarModelosMejoresCV(archivoCV,x_train,y_train,threshold=0.6)
 
 if __name__=="__main__":
     modo = sys.argv[1]
     lector = LectorParametros()
     diccionarioValores = lector.leerParametros()
-    if modo == "search":
-        nombreArchivo = diccionarioValores["datos"]
-        datos = pd.read_csv("Datasets/"+nombreArchivo)
-        x_train,y_train,x_test,y_test = procesarDatos(datos,scale=False)
-        archivoJson = open("parametrosGridSearch.json","r")
-        datosGridSearch = json.load(archivoJson)
-
-        dic_xgboost = datosGridSearch["xgboost"]
-        dic_forest = datosGridSearch["random_forest"]
-        dic_SVM = datosGridSearch["SVM"]
-        modelo = LinearRegression()
-        nombreModelo = "Linear Regression"
-        busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features="best")
-
-
-        modelo = RandomForestRegressor(random_state=3006)
-        nombreModelo = "Random Forest"
-        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_forest,n_features="best")
-
-
-        modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
-        nombreModelo = "XGBoost"
-        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features="best")
-
-        modelo = LinearSVR(random_state=3006,max_iter=10000)
-        nombreModelo = "SVM"
-        busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features="best")
-        guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
-        pass
+    if modo == "desc":
+        nombreArchivoDatos = diccionarioValores["datos"]
+        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),nombreArchivoDatos,split=True)
+    elif modo == "search":
+        nombreArchivoDatos = diccionarioValores["datos"]
+        busqueda(nombreArchivoDatos)
     elif modo == "train":
         nombreArchivoCrossValidation = diccionarioValores["validacion"]
         nombreArchivoDatos = diccionarioValores["datos"]
-        datos = pd.read_csv("Datasets/"+nombreArchivo)
-        x_train,y_train,_,_ = procesarDatos(datos,scale=False)
-        archivo = pd.read_excel("CrossValidation/"+nombreArchivo)
-        guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.6)
-        pass
+        entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos)
     elif modo == "evaluar":
         nombreArchivoDatos = diccionarioValores["datos"]
         tipo = diccionarioValores["tipo"]
         datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
-        y = datos["log_Koa"]
-        x = datos.drop(columns=["log_Koa"])
+        y = datos[datos.columns[1]]
+        x = datos.drop(columns=[datos.columns[1],"smiles"])
         evaluarModelosGuardados(x,y,"evaluacion_modelos",tipo=tipo,generarFigura=False)
-        pass
-
-
-datos = pd.read_csv("Datasets/logKoa_descriptors_total.csv")
-
-x_train,y_train,x_test,y_test = procesarDatos(datos,scale=False)
-
-#x_train_scaled,_,x_test_scaled,_ = procesarDatos(datos,scale=True)
-
-datosTest2 = pd.read_csv("Datasets/externalCanon_descriptors_total_final_2.csv")
-datosTest2.index = datosTest2["No."]
-y_external = datosTest2["log_Koa"]
-x_external = datosTest2.drop(columns=["No.","Compound.name","log_Koa","smiles","CAS.RN"])
-x_external = x_external[x_train.columns]
-
-x_test_external = pd.concat([x_test,x_external],ignore_index=True,axis=0)
-y_test_external = pd.concat([y_test,y_external])
-
-x_total = pd.concat([x_train,x_test,x_external],ignore_index=True,axis=0)
-y_total = pd.concat([y_train,y_test,y_external],ignore_index=True,axis=0)
-
-
-
-
-#archivo = pd.read_excel("CrossValidation/cross_validation_no_limit.xlsx")
-
-#guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45)
-
-#evaluarModelosGuardados(x_total,y_total,"evaluacion_modelos",tipo="total",generarFigura=False)
-
+    elif modo == "total":
+        nombreArchivoDatos = diccionarioValores["datos"]
+        nombreArchivoCrossValidation = diccionarioValores["validacion"]
+        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),split=True)
+        busqueda("train_desc_"+nombreArchivoDatos)
+        entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos)
