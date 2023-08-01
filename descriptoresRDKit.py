@@ -104,8 +104,8 @@ def calcularDescriptores(molecula):
 
     return descriptores
 
-def calcularDescriptores2(smile):
-    return Chem.Descriptors.CalcMolDescriptors(smile)
+def calcularDescriptores2(molecula):
+    return Chem.Descriptors.CalcMolDescriptors(molecula)
 
 
 def calcularDescriptoresRDKit(smiles):
