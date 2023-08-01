@@ -6,6 +6,7 @@ from descriptoresRDKit import calcularDescriptoresRDKit
 from descriptoresJazzy import calcularDescriptoresJazzy
 from openbabel import pybel
 import warnings
+from rdkit.Chem import CanonSmiles
 
 pandas2ri.activate()
 
@@ -46,6 +47,9 @@ def calcularDescriptoresObabel(smiles):
     return descriptorsObabel
 
 def calcularDescriptores(smiles):
+    smilesCanon = []
+    for smile in smiles:
+        smilesCanon.append(CanonSmiles(smile))
     descriptorsCDK = calcularDescriptoresCDK(smiles)
     descriptorsObabel = calcularDescriptoresObabel(smiles)
     descriptoresRDKit = calcularDescriptoresRDKit(smiles)

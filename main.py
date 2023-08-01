@@ -132,14 +132,14 @@ def busqueda(nombreArchivo):
     busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features="best")
 
 def crearDataset(datos,nombreArchivo,split,prefijo=""):
+    datos.sort_index(inplace=True)
     if split:
         datos_train,datos_test= train_test_split(datos,test_size=0.15,random_state=3006)
         crearDataset(datos_train,nombreArchivo,split=False,prefijo="train_")
         crearDataset(datos_test,nombreArchivo,split=False,prefijo="test_")
     else:
-        print(datos)
-        smiles = datos["smiles"]
-        objetivo = datos[datos.columns[1]]
+        smiles = datos["smiles"].to_numpy()
+        objetivo = datos[datos.columns[1]].to_numpy()
         dataset = calcularDescriptores(smiles)
         dataset.insert(1,datos.columns[1],objetivo)
         dataset.to_csv("Datasets/"+prefijo+"desc_"+nombreArchivo,index=False)
