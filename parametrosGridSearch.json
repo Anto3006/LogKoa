@@ -1,16 +1,54 @@
 {
-    "xgboost":
+    "models":
     {
-        "learning_rate":    [0.05,0.1,0.3],
-        "max_depth":        [5,10,20],
-        "n_estimators":     [100,500,1000]
+        "Linear Regression": false,
+        "Random Forest":false,
+        "SVM":false,
+        "XGBoost":true
     },
-    "random_forest":
+
+    "feature_selection":
     {
-        "n_estimators": [30,50,100,150,200,300,500,700,1000]
+        "number_features":"best",
+        "UFS":
+        {
+            "use":true
+        },
+        "RFE":
+        {
+            "use":true
+        },
+        "RFE_SHAP":
+        {
+            "use":true,
+            "background_split":0.001
+        },
+        "SFS":
+        {
+            "use":true,
+            "forward":true,
+            "backward":true
+        }
     },
-    "SVM":
+
+    "hyperparameters":
     {
-        "C":[0.001,0.002,0.005,0.007,0.01,0.02,0.05,0.07,0.1,0.2,0.5,0.7,1.0,2.0,5.0,10.0]
+        "Linear Regression":{},
+        "XGBoost":
+        {
+            "learning_rate":    [0.05,0.1,0.3],
+            "max_depth":        [5,10,20],
+            "n_estimators":     [100,500,1000],
+            "tree_method": ["gpu_hist"]
+        },
+        "Random Forest":
+        {
+            "n_estimators": [50,100,200,500,700,1000],
+            "max_depth" : [5,10,20]
+        },
+        "SVM":
+        {
+            "C":[0.001,0.002,0.005,0.007,0.01,0.02,0.05,0.07,0.1,0.2,0.5,0.7,1.0,2.0,5.0,10.0]
+        }
     }
 }

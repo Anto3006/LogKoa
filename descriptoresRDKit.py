@@ -111,21 +111,17 @@ def calcularDescriptores2(molecula):
 def calcularDescriptoresRDKit(smiles):
     descriptoresRDKit = {}
     for smile in smiles:
-        molecula = Chem.MolFromSmiles(smile)
-        descriptores = calcularDescriptores(molecula)
-        for descriptor in descriptores:
-            if descriptor in descriptoresRDKit:
-                descriptoresRDKit[descriptor].append(descriptores[descriptor])
-            else:
-                descriptoresRDKit[descriptor] = [descriptores[descriptor]]
+        try:
+            molecula = Chem.MolFromSmiles(smile)
+            descriptores = calcularDescriptores(molecula)
+            for descriptor in descriptores:
+                if descriptor in descriptoresRDKit:
+                    descriptoresRDKit[descriptor].append(descriptores[descriptor])
+                else:
+                    descriptoresRDKit[descriptor] = [descriptores[descriptor]]
+        except:
+            for descriptor in descriptoresRDKit:
+                descriptoresRDKit[descriptor].append("")
     return pd.DataFrame(descriptoresRDKit)
 
 
-if __name__ == "__main__":
-    datos = pd.read_csv("contaminants_descriptors.csv")
-    smiles = datos["smiles"]
-    descriptoresRDKit = calcularDescriptoresRDKit(smiles)
-    for descriptor in descriptoresRDKit:
-        datos[descriptor] = descriptoresRDKit[descriptor]
-
-    datos.to_csv("contaminants_descriptors.csv")

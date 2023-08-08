@@ -21,7 +21,22 @@ def verificarConstancia(datos, threshold = 0.8):
             if conteo[valor] >= threshold:
                 columnasConstantes.append(columna)
     return columnasConstantes
-        
+
+def columnasNa(datos,thresCol=0.2):
+    columnasNa = []
+    for col in datos:
+        cantidadNa = datos[col].isna().sum()
+        if cantidadNa > len(datos)*thresCol:
+            columnasNa.append(col)
+    return columnasNa
+
+def filasNa(datos):
+    filasEliminar = []
+    for i in datos.index:
+        if datos.loc[i].isna().sum().sum() > 0:
+            filasEliminar.append(i)
+    return filasEliminar
+
 
 def scaleData(scaler,dataFrame):
     scaler = preprocessing.StandardScaler()
@@ -33,7 +48,14 @@ def procesarDatos(datos,scale=False):
     y = datos[datos.columns[1]]
     x = datos.copy(deep=True)
     x.drop(columns=[datos.columns[1],"smiles"],inplace=True)
-    x.dropna(axis=1,how="any",inplace=True)
+    x.replace(r'^\s*$', np.nan, regex=True,inplace=True)
+    colNa = columnasNa(x)
+    print(colNa)
+    x.drop(columns=colNa,inplace=True)
+    filNa = filasNa(x)
+    print(filNa)
+    x.drop(index=filNa,inplace=True)
+    y.drop(index=filNa,inplace=True)
     if scale:
         scaler = preprocessing.StandardScaler()
         x = scaleData(scaler,x)
@@ -41,10 +63,10 @@ def procesarDatos(datos,scale=False):
     columnasConstantes = verificarConstancia(x)
     x.drop(columns=columnasConstantes,inplace=True)
     #Eliminar datos altamentes correlacionados
-    cor_matrix = x.corr().abs()
-    upper_tri = cor_matrix.where(np.triu(np.ones(cor_matrix.shape),k=1).astype(np.bool_))
-    to_drop = [column for column in upper_tri.columns if any(upper_tri[column] > 0.95)]
-    x.drop(columns=to_drop,inplace=True)
+    matrizCorrelacion = x.corr().abs()
+    triangularSuperior = matrizCorrelacion.where(np.triu(np.ones(matrizCorrelacion.shape),k=1).astype(np.bool_))
+    colCorr = [column for column in triangularSuperior.columns if any(triangularSuperior[column] > 0.95)]
+    x.drop(columns=colCorr,inplace=True)
     return x,y
 
 def procesarHyperparametros(hyperparametros):

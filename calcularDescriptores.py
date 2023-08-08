@@ -23,6 +23,7 @@ def calcularDescriptoresCDK(smiles):
 
     descNames = base.unique(base.unlist(base.sapply(descCategories,getDescNames)))
     descNames = [name for name in descNames if name != "org.openscience.cdk.qsar.descriptors.molecular.LongestAliphaticChainDescriptor"]
+    descNames = ro.StrVector(descNames)
 
     mols = rcdk.parse_smiles(ro.StrVector(smiles))
     descriptorsCDK = rcdk.eval_desc(mols,descNames)
@@ -48,14 +49,15 @@ def calcularDescriptoresObabel(smiles):
 
 def calcularDescriptores(smiles):
     smilesCanon = []
+    i=0
     for smile in smiles:
         smilesCanon.append(CanonSmiles(smile))
-    descriptorsCDK = calcularDescriptoresCDK(smiles)
-    descriptorsObabel = calcularDescriptoresObabel(smiles)
-    descriptoresRDKit = calcularDescriptoresRDKit(smiles)
-    descriptoresJazzy = calcularDescriptoresJazzy(smiles)
+    descriptorsCDK = calcularDescriptoresCDK(smilesCanon)
+    descriptorsObabel = calcularDescriptoresObabel(smilesCanon)
+    descriptoresRDKit = calcularDescriptoresRDKit(smilesCanon)
+    descriptoresJazzy = calcularDescriptoresJazzy(smilesCanon)
     descriptors = pandas.concat([descriptoresJazzy,descriptorsCDK,descriptoresRDKit,descriptorsObabel],axis=1)
-    descriptors.insert(0,"smiles",smiles)
+    descriptors.insert(0,"smiles",smilesCanon)
     return descriptors
 
 

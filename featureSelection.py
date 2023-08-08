@@ -20,9 +20,9 @@ def hyperparametrosCV(modelo,x_train,y_train):
     return mean_score
 
 #Devuelve el nombre de la característica con el menor valor absoluto shap, la que se considera de menor importancia
-def caracteristicaMenosImportante(modelo,x_train):
-    x_background,x_shap_values = train_test_split(x_train,test_size=0.05,random_state=3006)
-    x_train_summary = pd.DataFrame(data=shap.kmeans(x_background,10).data,columns=x_train.columns)
+def caracteristicaMenosImportante(modelo,x_train,shap_split=0.05):
+    x_background,x_shap_values = train_test_split(x_train,test_size=shap_split,random_state=3006)
+    x_train_summary = pd.DataFrame(data=shap.kmeans(x_background,10,n_init=10).data,columns=x_train.columns)
     explainer = shap.KernelExplainer(modelo,x_train_summary, keep_index=True)
     valores_shap = explainer.shap_values(x_shap_values)
     importancias = []
@@ -54,11 +54,14 @@ def bestUnivariateFeatureSelection(modelo,x_train,y_train,funcionKBest=f_regress
         totalFeatures = len(x_train.columns)
         resultados = []
         for numberFeatures in range(1,totalFeatures+1):
+            print(numberFeatures)
             bestFeatures = SelectKBest(score_func=funcionKBest, k=numberFeatures)
             bestFeatures.fit(x_train,y_train)
             features = bestFeatures.get_feature_names_out()
             x_train_2 = x_train[features]
+            print("Inicio")
             cvScore = hyperparametrosCV(modelo,x_train_2,y_train)
+            print("Final")
             resultados.append(str(abs(cvScore)) + "," + str(features).replace(',', ' ').replace('\n',' '))
             if cvScore > mejorResultado:
                 mejorResultado = cvScore
@@ -86,12 +89,12 @@ def bestSFS(modelo,x_train,y_train,k_features="best",direccionSFS="forward",arch
     mejoresFeatures = []
     if k_features != "best":
         #8 jobs porque es demasiado pesado y se puede usar la computadora si se usan todos los procesadores
-        selector = SequentialFeatureSelector(modelo,n_features_to_select=k_features,direction=direccionSFS,n_jobs=8,scoring="neg_root_mean_squared_error")
+        selector = SequentialFeatureSelector(modelo,n_features_to_select=k_features,direction=direccionSFS,n_jobs=6,scoring="neg_root_mean_squared_error")
         selector.fit(x_train,y_train)
         mejoresFeatures = selector.get_feature_names_out()
     else:
         print(direccionSFS)
-        selector = SFS(modelo,k_features="best",forward=(direccionSFS=="forward"),n_jobs=8,scoring="neg_root_mean_squared_error")
+        selector = SFS(modelo,k_features="best",forward=(direccionSFS=="forward"),n_jobs=6,scoring="neg_root_mean_squared_error")
         selector.fit(x_train,y_train)
         mejoresFeatures = selector.k_feature_names_
         if archivoResultadosTotales != "":
@@ -99,14 +102,14 @@ def bestSFS(modelo,x_train,y_train,k_features="best",direccionSFS="forward",arch
             guardarResultadosTotales(resultados,archivoResultadosTotales)
     return mejoresFeatures
 
-def bestShap(modelo,x_train,y_train,k_features="best",archivoResultadosTotales=""):
+def bestShap(modelo,x_train,y_train,k_features="best",shap_split=0.05,archivoResultadosTotales=""):
     mejoresFeatures = []
     if k_features != "best":
         x_train_2 = x_train.copy(deep=True)
         modelo.fit(x_train_2,y_train)
         while len(x_train_2.columns) > k_features:
             print(len(x_train_2.columns))
-            car = caracteristicaMenosImportante(modelo.predict,x_train_2)
+            car = caracteristicaMenosImportante(modelo.predict,x_train_2,shap_split=shap_split)
             x_train_2.drop(columns=[car[0]],inplace=True)
             modelo.fit(x_train_2,y_train)
         mejoresFeatures = x_train_2.columns
@@ -118,7 +121,7 @@ def bestShap(modelo,x_train,y_train,k_features="best",archivoResultadosTotales="
         resultados = [str(mejorResultado) + "," + str(mejoresFeatures).replace(',',' ').replace('\n',' ')]
         while len(x_train_2.columns) > 1:
             print(len(x_train_2.columns))
-            car = caracteristicaMenosImportante(modelo.predict,x_train_2)
+            car = caracteristicaMenosImportante(modelo.predict,x_train_2,shap_split=shap_split)
             x_train_2.drop(columns=[car[0]],inplace=True)
             features = copy.deepcopy(x_train_2.columns)
             cvScore = hyperparametrosCV(modelo,x_train_2,y_train)
@@ -131,7 +134,7 @@ def bestShap(modelo,x_train,y_train,k_features="best",archivoResultadosTotales="
         guardarResultadosTotales(resultados,archivoResultadosTotales)
     return mejoresFeatures
 
-def featureSelection(modelo,tipo,x_train,y_train,k_features,funcion_k_best=f_regression,direccion_sfs="forward",nombreArchivoResultadosTotales=""):
+def featureSelection(modelo,tipo,x_train,y_train,k_features,funcion_k_best=f_regression,direccion_sfs="forward",shap_split=0.05,nombreArchivoResultadosTotales=""):
     mejoresFeatures = []
     if tipo.lower() == "k_best":
         mejoresFeatures = bestUnivariateFeatureSelection(modelo,x_train,y_train,funcionKBest=funcion_k_best,k_features=k_features,archivoResultadosTotales=nombreArchivoResultadosTotales)
@@ -140,5 +143,5 @@ def featureSelection(modelo,tipo,x_train,y_train,k_features,funcion_k_best=f_reg
     elif tipo.lower() == "sfs":
         mejoresFeatures = bestSFS(modelo,x_train,y_train,k_features=k_features,direccionSFS=direccion_sfs,archivoResultadosTotales=nombreArchivoResultadosTotales)
     elif tipo.lower() == "shap":
-        mejoresFeatures = bestShap(modelo,x_train,y_train,k_features=k_features,archivoResultadosTotales=nombreArchivoResultadosTotales)
+        mejoresFeatures = bestShap(modelo,x_train,y_train,k_features=k_features,shap_split=shap_split,archivoResultadosTotales=nombreArchivoResultadosTotales)
     return list(mejoresFeatures)

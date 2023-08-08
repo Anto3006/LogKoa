@@ -17,37 +17,43 @@ import sys
 from lectorParametros import LectorParametros
 from calcularDescriptores import calcularDescriptores
 from sklearn.model_selection import train_test_split
+from pyspark.ml.regression import RandomForestRegressor
 
-ARCHIVO_CROSS_VALIDATION = "cross_validation.csv"
+ARCHIVO_CROSS_VALIDATION = "cross_validation_logP.csv"
 
 
 
-def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparametros,n_features="best"):
-    funciones_score = {"f_regression":f_regression,"r_regression":r_regression,"mutual_info_regression":mutual_info_regression}
-    for funcion in funciones_score:
-        nombreArchivoResultadosTotales = nombreModelo+"_"+"k_best_"+funcion
-        mejorResultado, mejoresHyper, features, numeroFeatures = gridSearch(modelo,"k_best",x_train,y_train,diccionarioHyperparametros,n_features,funcion_k_best=funciones_score[funcion],nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
-        guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"k_best_"+funcion,mejorResultado,mejoresHyper,features,numeroFeatures)
-    
-    nombreArchivoResultadosTotales = nombreModelo+"_"+"rfe"
-    mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"rfe",x_train,y_train,diccionarioHyperparametros,n_features,nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
-    guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"rfe",mejorResultado,mejoresHyper,features,numeroFeatures)
+def busquedaCompleta(modelo,nombreModelo,x_train,y_train,diccionarioHyperparametros,datosFeatureSelection):
+    n_features = datosFeatureSelection["number_features"]
 
-    
-    nombreArchivoResultadosTotales = nombreModelo+"_"+"shap"
-    mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"shap",x_train,y_train,diccionarioHyperparametros,n_features,nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
-    guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"shap",mejorResultado,mejoresHyper,features,numeroFeatures)
-    
-    nombreArchivoResultadosTotales = nombreModelo+"_"+"sfs_forward"
-    mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"sfs",x_train,y_train,diccionarioHyperparametros,n_features,direccion_sfs="forward",nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
-    guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_forward",mejorResultado,mejoresHyper,features,numeroFeatures)
-    
+    if datosFeatureSelection["UFS"]["use"]:
+        funciones_score = {"f_regression":f_regression,"r_regression":r_regression,"mutual_info_regression":mutual_info_regression}
+        for funcion in funciones_score:
+            nombreArchivoResultadosTotales = nombreModelo+"_"+"k_best_"+funcion
+            mejorResultado, mejoresHyper, features, numeroFeatures = gridSearch(modelo,"k_best",x_train,y_train,diccionarioHyperparametros,n_features,funcion_k_best=funciones_score[funcion],nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
+            guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"k_best_"+funcion,mejorResultado,mejoresHyper,features,numeroFeatures)
+        
+    if datosFeatureSelection["RFE"]["use"]:
+        nombreArchivoResultadosTotales = nombreModelo+"_"+"rfe"
+        mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"rfe",x_train,y_train,diccionarioHyperparametros,n_features,nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
+        guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"rfe",mejorResultado,mejoresHyper,features,numeroFeatures)
 
+    if datosFeatureSelection["RFE_SHAP"]["use"]:    
+        nombreArchivoResultadosTotales = nombreModelo+"_"+"shap"
+        shap_split = datosFeatureSelection["RFE_SHAP"]["background_split"]
+        mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"shap",x_train,y_train,diccionarioHyperparametros,n_features,shap_split=shap_split,nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
+        guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"shap",mejorResultado,mejoresHyper,features,numeroFeatures)
     
-    nombreArchivoResultadosTotales = nombreModelo+"_"+"sfs_backward"
-    mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"sfs",x_train,y_train,diccionarioHyperparametros,n_features,direccion_sfs="backward",nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
-    guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_backward",mejorResultado,mejoresHyper,features,numeroFeatures)
-    
+    if datosFeatureSelection["SFS"]["use"]:
+        if datosFeatureSelection["SFS"]["forward"]:
+            nombreArchivoResultadosTotales = nombreModelo+"_"+"sfs_forward"
+            mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"sfs",x_train,y_train,diccionarioHyperparametros,n_features,direccion_sfs="forward",nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
+            guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_forward",mejorResultado,mejoresHyper,features,numeroFeatures)
+        if datosFeatureSelection["SFS"]["backward"]:    
+            nombreArchivoResultadosTotales = nombreModelo+"_"+"sfs_backward"
+            mejorResultado, mejoresHyper, features, numeroFeatures  = gridSearch(modelo,"sfs",x_train,y_train,diccionarioHyperparametros,n_features,direccion_sfs="backward",nombreArchivoResultadosTotales=nombreArchivoResultadosTotales)
+            guardarResultadosBusqueda(ARCHIVO_CROSS_VALIDATION,nombreModelo,"sfs_backward",mejorResultado,mejoresHyper,features,numeroFeatures)
+        
 
 def guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45):
     datos = archivo
@@ -103,40 +109,43 @@ def obtenerModelo(nombreModelo,hyperparametros):
         modelo.set_params(**dic_hyperparametros)
     return modelo
 
+def crearModelo(nombreModelo):
+    modelo = None
+    if nombreModelo == "Linear Regression":
+        modelo = LinearRegression()
+    elif nombreModelo == "Random Forest":
+        modelo = RandomForestRegressor(random_state=3006)
+    elif nombreModelo == "XGBoost":
+        modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
+    elif nombreModelo == "SVM":
+        modelo = LinearSVR(random_state=3006,max_iter=10000)
+    return modelo
+
+
 def busqueda(nombreArchivo):
     datos = pd.read_csv("Datasets/"+nombreArchivo)
-    x_train,y_train = procesarDatos(datos,scale=False)
+    y_train = datos[datos.columns[1]]
+    x_train = datos.drop(columns=["smiles",datos.columns[1]])
+    print(x_train)
     archivoJson = open("parametrosGridSearch.json","r")
     datosGridSearch = json.load(archivoJson)
 
-    dic_xgboost = datosGridSearch["xgboost"]
-    dic_forest = datosGridSearch["random_forest"]
-    dic_SVM = datosGridSearch["SVM"]
+    datosHyperparametros = datosGridSearch["hyperparameters"]
+    datosModelos = datosGridSearch["models"]
+    datosFeatureSelection = datosGridSearch["feature_selection"]
 
-    modelo = LinearRegression()
-    nombreModelo = "Linear Regression"
-    busquedaCompleta(modelo,nombreModelo,x_train,y_train,{},n_features="best")
+    for nombreModelo in datosModelos:
+        if datosModelos[nombreModelo]:
+            modelo = crearModelo(nombreModelo)
+            dicModelo = datosHyperparametros[nombreModelo]
+            busquedaCompleta(modelo,nombreModelo,x_train,y_train,dicModelo,datosFeatureSelection)
 
-
-    modelo = RandomForestRegressor(random_state=3006)
-    nombreModelo = "Random Forest"
-    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_forest,n_features="best")
-
-
-    modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
-    nombreModelo = "XGBoost"
-    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_xgboost,n_features="best")
-
-    modelo = LinearSVR(random_state=3006,max_iter=10000)
-    nombreModelo = "SVM"
-    busquedaCompleta(modelo,nombreModelo,x_train,y_train,dic_SVM,n_features="best")
-
-def crearDataset(datos,nombreArchivo,split,prefijo=""):
+def crearDataset(datos,nombreArchivo,split,porcentajeSplit,prefijo=""):
     datos.sort_index(inplace=True)
     if split:
-        datos_train,datos_test= train_test_split(datos,test_size=0.15,random_state=3006)
-        crearDataset(datos_train,nombreArchivo,split=False,prefijo="train_")
-        crearDataset(datos_test,nombreArchivo,split=False,prefijo="test_")
+        datos_train,datos_test= train_test_split(datos,test_size=porcentajeSplit,random_state=3006)
+        crearDataset(datos_train,nombreArchivo,split=False,porcentajeSplit=0,prefijo="train_")
+        crearDataset(datos_test,nombreArchivo,split=False,porcentajeSplit=0,prefijo="test_")
     else:
         smiles = datos["smiles"].to_numpy()
         objetivo = datos[datos.columns[1]].to_numpy()
@@ -151,13 +160,24 @@ def entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos):
     archivoCV = pd.read_excel("CrossValidation/"+nombreArchivoCrossValidation)
     guardarModelosMejoresCV(archivoCV,x_train,y_train,threshold=0.6)
 
+
+
 if __name__=="__main__":
     modo = sys.argv[1]
     lector = LectorParametros()
     diccionarioValores = lector.leerParametros()
     if modo == "desc":
         nombreArchivoDatos = diccionarioValores["datos"]
-        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),nombreArchivoDatos,split=True)
+        split = diccionarioValores["split"]
+        porcentajeSplit = diccionarioValores["porcentajeSplit"]
+        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),nombreArchivoDatos,split=split,porcentajeSplit=porcentajeSplit)
+    elif modo == "proc":
+        nombreArchivoDatos = diccionarioValores["datos"]
+        datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
+        x_train,y_train = procesarDatos(datos,scale=False)
+        x_train.insert(0,"smiles",datos["smiles"])
+        x_train.insert(1,datos.columns[1],y_train)
+        x_train.to_csv("Datasets/proc_" + nombreArchivoDatos,index=False)
     elif modo == "search":
         nombreArchivoDatos = diccionarioValores["datos"]
         busqueda(nombreArchivoDatos)
@@ -175,6 +195,9 @@ if __name__=="__main__":
     elif modo == "total":
         nombreArchivoDatos = diccionarioValores["datos"]
         nombreArchivoCrossValidation = diccionarioValores["validacion"]
-        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),split=True)
+        crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),split=True,porcentajeSplit=porcentajeSplit)
         busqueda("train_desc_"+nombreArchivoDatos)
         entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos)
+
+
+

@@ -52,13 +52,15 @@ def evaluarModelo(modelo,x,y,nombreBase="figura",tipo="test",generarFigura=True)
 def generarShap(modelo, nombreBase, x_train, x_test, titulo=""):
     explainer = shap.KernelExplainer(modelo.predict, x_train, keep_index=True)
     shap_valores = explainer.shap_values(x_test)
-    plt.title(titulo)
     shap.summary_plot(shap_valores, x_test,show=False)
-    plt.savefig("shap"+nombreBase+".png")
+    plt.title(titulo)
+    plt.tight_layout()
+    plt.savefig("shap"+nombreBase+".png",bbox_inches="tight")
     plt.clf()
     shap.summary_plot(shap_valores, x_test,show=False,plot_type="bar")
     plt.title(titulo)
-    plt.savefig("shap_bar"+nombreBase+".png")
+    plt.tight_layout()
+    plt.savefig("shap_bar"+nombreBase+".png",bbox_inches="tight")
     plt.clf()
 
 def guardarResultadosBusqueda(nombreArchivo,nombreModelo,featureSelection,mejorResultado,mejoresHyper,features,numeroFeatures):
