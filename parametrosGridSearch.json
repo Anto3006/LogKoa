@@ -1,34 +1,62 @@
 {
     "models":
     {
-        "Linear Regression": false,
+        "Linear Regression": true,
         "Random Forest":false,
         "SVM":false,
-        "XGBoost":true
+        "XGBoost":false
     },
 
     "feature_selection":
     {
-        "number_features":"best",
         "UFS":
-        {
-            "use":true
-        },
+        [
+            {
+                "number_features":"best",
+                "use":true,
+                "scoreFunc":"f_regression"
+            },
+            {
+                "number_features":"best",
+                "use":true,
+                "scoreFunc":"f_regression"
+            },
+            {
+                "number_features":"best",
+                "use":true,
+                "scoreFunc":"mutual_info_regression"
+            }
+        ],
         "RFE":
-        {
-            "use":true
-        },
+        [
+            {
+                "number_features":"best",
+                "use":false
+            }
+        ],
         "RFE_SHAP":
-        {
-            "use":true,
-            "background_split":0.001
-        },
+        [
+            {
+                "number_features":"best",
+                "use":false,
+                "background_split":0.001
+            }
+        ],
         "SFS":
-        {
-            "use":true,
-            "forward":true,
-            "backward":true
-        }
+        [
+            {
+                "number_features":"best",
+                "use":true,
+                "direction":"forward",
+                "jobs": 8
+            },
+            {
+                "number_features":"best",
+                "use":true,
+                "direction":"backward",
+                "jobs": 8
+            }
+        ]
     },
 
     "hyperparameters":

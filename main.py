@@ -17,7 +17,10 @@ import sys
 from lectorParametros import LectorParametros
 from calcularDescriptores import calcularDescriptores
 from sklearn.model_selection import train_test_split
-from pyspark.ml.regression import RandomForestRegressor
+
+from cuml.linear_model import LinearRegression as cumlLR
+from cuml.ensemble import RandomForestRegressor as cumlRFR
+from cuml.svm import LinearSVR as cumlSVR
 
 ARCHIVO_CROSS_VALIDATION = "cross_validation_logP.csv"
 
@@ -64,7 +67,10 @@ def guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45):
                 hyp = ""
             nombreModelo = row["Modelo"].strip()
             print(nombreModelo)
-            modelo = obtenerModelo(nombreModelo,hyp)
+            modelo = crearModelo(nombreModelo)
+            if hyp != "":
+                dicHyperparametros = procesarHyperparametros(hyp)
+                modelo.set_params(**dicHyperparametros)
             features = re.sub(r'\s+', ' ', row["Features"])
             features = features.split(" ")
             features = [feature for feature in features if feature != ""]
@@ -93,32 +99,25 @@ def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
     writer.close()
         
 
-def obtenerModelo(nombreModelo,hyperparametros):
+def crearModelo(nombreModelo,gpu=False):
     modelo = None
     if nombreModelo == "Linear Regression":
-        modelo = LinearRegression()
+        if not gpu:
+            modelo = LinearRegression()
+        else:
+            modelo = cumlLR(algorithm="eig")
     elif nombreModelo == "Random Forest":
-        modelo = RandomForestRegressor(random_state=3006)
+        if not gpu:
+            modelo = RandomForestRegressor(random_state=3006)
+        else:
+            modelo = cumlRFR(n_estimators=100,split_criterion=2,max_depth=5,accuracy_metric="mse",random_state=3006)
     elif nombreModelo == "SVM":
-        modelo = LinearSVR(random_state=3006,max_iter=10000)
+        if not gpu:
+            modelo = LinearSVR(random_state=3006,max_iter=10000)
+        else:
+            modelo = cumlSVR(max_iter=10000,C=1.0,random_state=3006)
     elif nombreModelo == "XGBoost":
         modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
-    
-    if hyperparametros != "":
-        dic_hyperparametros = procesarHyperparametros(hyperparametros)
-        modelo.set_params(**dic_hyperparametros)
-    return modelo
-
-def crearModelo(nombreModelo):
-    modelo = None
-    if nombreModelo == "Linear Regression":
-        modelo = LinearRegression()
-    elif nombreModelo == "Random Forest":
-        modelo = RandomForestRegressor(random_state=3006)
-    elif nombreModelo == "XGBoost":
-        modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
-    elif nombreModelo == "SVM":
-        modelo = LinearSVR(random_state=3006,max_iter=10000)
     return modelo
 
 

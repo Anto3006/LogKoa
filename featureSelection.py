@@ -1,3 +1,5 @@
+from urllib.parse import ParseResult
+from symbol import parameters
 import pandas as pd
 import numpy as np
 from sklearn.feature_selection import SelectKBest
@@ -43,6 +45,90 @@ def guardarResultadosTotales(resultados,archivoResultadosTotales):
         archivo.write(str(i+1) + "," + str(resultados[i]) + "\n")
     archivo.close()
 
+
+class FeatureSelectionMethod:
+
+    def __init__(self,parameters):
+        self.parameters = parameters
+        self.bestFeatures = []
+    
+    def selectFeatures(self,model,x_train,y_train):
+        if self.parameters["number_features"] == "best":
+            self.selectBestFeaturesUnlimited(model,x_train,y_train)
+        elif isinstance(self.parameters["number_features"],int):
+            self.selectBestFeaturesK(model,x_train,y_train)
+    
+    def selectBestFeaturesUnlimited(self,model,x_train,y_train):
+        pass
+
+    def selectBestFeaturesK(self,model,x_train,y_train):
+        pass
+
+class UnivariateFeatureSelection(FeatureSelectionMethod):
+
+    def __init__(self,parameters):
+        super().__init__(parameters)
+    
+    def selectBestFeaturesUnlimited(self,model,x_train,y_train):
+        bestResult = -np.inf
+        totalFeatures = len(x_train.columns)
+        results = []
+        featureSelector = SelectKBest(score_func=self.parameters["scoreFunc"], k=totalFeatures)
+        featureSelector.fit(x_train,y_train)
+        bestFeaturesSortedIndex = sorted([index for index in range(totalFeatures)],key= lambda index: featureSelector.scores_[index], reverse=True)
+        bestFeaturesSorted = featureSelector.feature_names_in_[bestFeaturesSortedIndex]
+        for numberFeatures in range(1,totalFeatures+1):
+            features = bestFeaturesSorted[0:numberFeatures]
+            x_train_2 = x_train[features]
+            cvScore = hyperparametrosCV(model,x_train_2,y_train)
+            results.append(str(abs(cvScore)) + "," + str(features).replace(',', ' ').replace('\n',' '))
+            if cvScore > bestResult:
+                bestResult = cvScore
+                self.bestFeatures = copy.deepcopy(features)
+        if parameters["fileAllResults"] != "":
+            guardarResultadosTotales(results,self.parameters["fileAllResults"])
+
+    def selectBestFeaturesK(self, model, x_train, y_train):
+        featureSelector = SelectKBest(score_func=self.parameters["scoreFunc"], k=self.parameters["number_features"])
+        featureSelector.fit(x_train,y_train)
+        self.bestFeatures = featureSelector.get_feature_names_out()
+
+class RecursiveFeatureElimination(FeatureSelectionMethod):
+
+    def __init__(self, parameters):
+        super().__init__(parameters)
+    
+    def selectBestFeaturesUnlimited(self, model, x_train, y_train):
+        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error")
+        selector.fit(x_train,y_train)
+        if parameters["fileAllResults"] != "":
+            results = np.abs(np.array(selector.cv_results_["mean_test_score"]))
+            guardarResultadosTotales(results,parameters["fileAllResults"])
+        self.bestFeatures = selector.get_feature_names_out()
+    
+    def selectBestFeaturesK(self, model, x_train, y_train):
+        selector = RFE(model,n_features_to_select=parameters["number_features"])
+        selector.fit(x_train,y_train)
+        self.bestFeatures = selector.get_feature_names_out()
+
+class SequentialFeatureSelection(FeatureSelectionMethod):
+
+    def __init__(self, parameters):
+        super().__init__(parameters)
+    
+    def selectBestFeaturesK(self, model, x_train, y_train):
+        selector = SequentialFeatureSelector(model,n_features_to_select=self.parameters["number_features"],direction=self.parameters["direction"],n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
+        selector.fit(x_train,y_train)
+        self.bestFeatures = selector.get_feature_names_out()
+    
+    def selectBestFeaturesUnlimited(self, model, x_train, y_train):
+        selector = SFS(model,k_features="best",forward=(self.parameters["direction"]=="forward"),n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
+        selector.fit(x_train,y_train)
+        self.bestFeatures = selector.k_feature_names_
+        if parameters["fileAllResults"] != "":
+            results = [str(selector.subsets_[i]['avg_score']) + "," + str(selector.subsets_[i]['feature_names']).replace(',',' ').replace('\n',' ') for i in range(1,len(list(selector.subsets_))+1)]
+            guardarResultadosTotales(results,parameters["fileAllResults"])
+
 def bestUnivariateFeatureSelection(modelo,x_train,y_train,funcionKBest=f_regression,k_features="best",archivoResultadosTotales=""):
     mejoresFeatures = []
     if k_features != "best":
@@ -53,11 +139,13 @@ def bestUnivariateFeatureSelection(modelo,x_train,y_train,funcionKBest=f_regress
         mejorResultado = -np.inf
         totalFeatures = len(x_train.columns)
         resultados = []
+        bestFeatures = SelectKBest(score_func=funcionKBest, k=totalFeatures)
+        bestFeatures.fit(x_train,y_train)
+        bestFeaturesSortedIndex = sorted([index for index in range(totalFeatures)],key= lambda index: bestFeatures.scores_[index], reverse=True)
+        bestFeaturesSorted = bestFeatures.feature_names_in_[bestFeaturesSortedIndex]
         for numberFeatures in range(1,totalFeatures+1):
             print(numberFeatures)
-            bestFeatures = SelectKBest(score_func=funcionKBest, k=numberFeatures)
-            bestFeatures.fit(x_train,y_train)
-            features = bestFeatures.get_feature_names_out()
+            features = bestFeaturesSorted[0:numberFeatures]
             x_train_2 = x_train[features]
             print("Inicio")
             cvScore = hyperparametrosCV(modelo,x_train_2,y_train)
@@ -93,7 +181,6 @@ def bestSFS(modelo,x_train,y_train,k_features="best",direccionSFS="forward",arch
         selector.fit(x_train,y_train)
         mejoresFeatures = selector.get_feature_names_out()
     else:
-        print(direccionSFS)
         selector = SFS(modelo,k_features="best",forward=(direccionSFS=="forward"),n_jobs=6,scoring="neg_root_mean_squared_error")
         selector.fit(x_train,y_train)
         mejoresFeatures = selector.k_feature_names_
