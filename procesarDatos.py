@@ -44,7 +44,7 @@ def scaleData(scaler,dataFrame):
     dataFrameScaled = pd.DataFrame(scaler.transform(dataFrame),columns=dataFrame.columns,index=dataFrame.index)
     return dataFrameScaled
 
-def procesarDatos(datos,scale=False):
+def procesarDatos(datos,thresholdConstancia=0.8,thresholdCorrelacion=0.95,scale=False):
     y = datos[datos.columns[1]]
     x = datos.copy(deep=True)
     x.drop(columns=[datos.columns[1],"smiles"],inplace=True)
@@ -60,12 +60,12 @@ def procesarDatos(datos,scale=False):
         scaler = preprocessing.StandardScaler()
         x = scaleData(scaler,x)
     #Eliminar datos constantes
-    columnasConstantes = verificarConstancia(x)
+    columnasConstantes = verificarConstancia(x,thresholdConstancia)
     x.drop(columns=columnasConstantes,inplace=True)
     #Eliminar datos altamentes correlacionados
     matrizCorrelacion = x.corr().abs()
     triangularSuperior = matrizCorrelacion.where(np.triu(np.ones(matrizCorrelacion.shape),k=1).astype(np.bool_))
-    colCorr = [column for column in triangularSuperior.columns if any(triangularSuperior[column] > 0.95)]
+    colCorr = [column for column in triangularSuperior.columns if any(triangularSuperior[column] > thresholdCorrelacion)]
     x.drop(columns=colCorr,inplace=True)
     return x,y
 
@@ -86,7 +86,7 @@ def procesarHyperparametros(hyperparametros):
                 else:
                     valorHyper = float(valorHyper)
             if valorHyper in ["True","False"]:
-                valorHyper = bool(valorHyper)
+                valorHyper = valorHyper == "True"
             dic_hyperparametros[nombreHyper] = valorHyper
     return dic_hyperparametros
 
@@ -94,8 +94,10 @@ def main():
     lector = LectorParametros()
     diccionarioValores = lector.leerParametros()
     nombreArchivoDatos = diccionarioValores["datos"]
+    constThreshold = diccionarioValores["constThreshold"]
+    corrThreshold = diccionarioValores["corrThreshold"]
     datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
-    x_train,y_train = procesarDatos(datos,scale=False)
+    x_train,y_train = procesarDatos(datos,thresholdConstancia=constThreshold,thresholdCorrelacion=corrThreshold,scale=False)
     x_train.insert(0,"smiles",datos["smiles"])
     x_train.insert(1,datos.columns[1],y_train)
     x_train.to_csv("Datasets/proc_" + nombreArchivoDatos,index=False)

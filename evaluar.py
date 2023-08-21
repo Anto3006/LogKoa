@@ -70,12 +70,13 @@ def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
     modelos.sort()
     resultados = pd.DataFrame(columns=["R2","RMSE","MUE","MSE"])
     for nombreModelo in modelos:
-        modelo = pickle.load(open("Modelos/"+nombreModelo, 'rb'))
-        nombreModelo = ".".join(nombreModelo.split(".")[0:-1])
-        features = modelo.feature_names_in_
-        x_2 = x[features]
-        evaluacion = evaluarModelo(modelo,x_2,y,nombreModelo,generarFigura=generarFigura)
-        resultados = resultados.append(evaluacion,ignore_index=True)
+        if nombreModelo != 'dummy':
+            modelo = pickle.load(open("Modelos/"+nombreModelo, 'rb'))
+            nombreModelo = ".".join(nombreModelo.split(".")[0:-1])
+            features = modelo.feature_names_in_
+            x_2 = x[features]
+            evaluacion = evaluarModelo(modelo,x_2,y,nombreModelo,generarFigura=generarFigura)
+            resultados = resultados.append(evaluacion,ignore_index=True)
     resultados.index = modelos
     modo = "w"
     if nombreArchivo+".xlsx" in os.listdir():

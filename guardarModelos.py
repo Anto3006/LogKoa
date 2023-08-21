@@ -5,14 +5,14 @@ import pickle
 from lectorParametros import LectorParametros
 import re
 
-def entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos):
+def entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos,crossValidationThreshold):
     datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
     y_train = datos[datos.columns[1]]
     x_train = datos.drop(columns=["smiles",datos.columns[1]])
-    archivoCV = pd.read_excel("CrossValidation/"+nombreArchivoCrossValidation)
-    guardarModelosMejoresCV(archivoCV,x_train,y_train,threshold=0.6)
+    archivoCV = pd.read_csv("CrossValidation/"+nombreArchivoCrossValidation)
+    guardarModelosMejoresCV(archivoCV,x_train,y_train,crossValidationThreshold)
 
-def guardarModelosMejoresCV(archivo,x_train,y_train,threshold=0.45):
+def guardarModelosMejoresCV(archivo,x_train,y_train,threshold):
     datos = archivo
     for index, row in datos.iterrows():
         if str(row["Score"]) != " " and float(row["Score"]) < threshold:
@@ -38,7 +38,8 @@ def main():
     diccionarioValores = lector.leerParametros()
     nombreArchivoCrossValidation = diccionarioValores["validacion"]
     nombreArchivoDatos = diccionarioValores["datos"]
-    entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos)
+    crossValidationThreshold = diccionarioValores["cvThreshold"]
+    entrenarMejoresModelos(nombreArchivoCrossValidation,nombreArchivoDatos,crossValidationThreshold)
 
 if __name__ == "__main__":
     main()

@@ -42,12 +42,12 @@ def busquedaCompleta(modelo,nombreModelo,nombreArchivoCrossValidation,x_train,y_
                 if featureSelectionName == "UFS":
                     parameters["fileAllResults"] += "_" + parameters["scoreFunc"]
                 bestResult, bestHyper, bestFeatures, numberFeatures = gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperparametros)
-                guardarResultadosBusqueda(nombreArchivoCrossValidation,nombreModelo,parameters["fileAllResults"],bestResult,bestHyper,bestFeatures,numberFeatures)
+                guardarResultadosBusqueda(nombreArchivoCrossValidation,nombreModelo,featureSelectionName,bestResult,bestHyper,bestFeatures,numberFeatures)
 
 def guardarResultadosBusqueda(nombreArchivo,nombreModelo,featureSelection,mejorResultado,mejoresHyper,features,numeroFeatures):
     mejoresHyper = str(mejoresHyper).replace('{','').replace('}','').replace(':','=').replace("'","").replace(' ','')
     features = str(features).replace('[','').replace(']','').replace(',','').replace("'","")
-    archivo = open(nombreArchivo,"a")
+    archivo = open("CrossValidation/" + nombreArchivo,"a")
     archivo.write(nombreModelo + "," + featureSelection + "," + mejoresHyper + "," + str(mejorResultado) + "," + str(numeroFeatures) + "," + features + "\n")
     archivo.close()
 
