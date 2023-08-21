@@ -70,15 +70,22 @@ def procesarDatos(datos,scale=False):
     return x,y
 
 def procesarHyperparametros(hyperparametros):
-    hyperparametros = re.sub(r'\s+', ' ', hyperparametros).split(" ")
     dic_hyperparametros = {}
-    for hyperparametro in hyperparametros:
-        print(hyperparametro)
-        datosHyper = hyperparametro.split("=")
-        datosHyper[0].strip()
-        nombreHyper = datosHyper[0]
-        valorHyper = float(datosHyper[1])
-        if nombreHyper in ["max_depth","n_estimators"]:
-            valorHyper = int(valorHyper)
-        dic_hyperparametros[nombreHyper] = valorHyper
+    if len(hyperparametros) > 0:
+        hyperparametros = re.sub(r'\s+', ' ', hyperparametros).split(" ")
+        print(hyperparametros)
+        for hyperparametro in hyperparametros:
+            datosHyper = hyperparametro.split("=")
+            datosHyper[0].strip()
+            nombreHyper = datosHyper[0]
+            valorHyper = datosHyper[1]
+            isNumber = re.search("^[0-9]+.?[0-9]*$",valorHyper)
+            if isNumber:
+                if not "." in valorHyper:
+                    valorHyper = int(valorHyper)
+                else:
+                    valorHyper = float(valorHyper)
+            if valorHyper in ["True","False"]:
+                valorHyper = bool(valorHyper)
+            dic_hyperparametros[nombreHyper] = valorHyper
     return dic_hyperparametros

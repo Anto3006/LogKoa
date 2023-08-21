@@ -1,26 +1,23 @@
 from sklearn.model_selection import ParameterGrid
-from featureSelection import featureSelection
 from featureSelection import hyperparametrosCV
 import copy
 from sklearn.feature_selection import f_regression
 import numpy as np
 
-def gridSearch(modelo,tipo,x_train,y_train,diccionarioHyperparametros,n_features="best",funcion_k_best=f_regression,direccion_sfs="forward",shap_split=0.05,nombreArchivoResultadosTotales=""):
+def gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperparametros):
     listaHyper = list(ParameterGrid(diccionarioHyperparametros))
     mejorResultado = -np.inf
     mejoresHyper = []
     features = []
     mejoresFeatures = []
-    nombreGeneral = nombreArchivoResultadosTotales
-    print(tipo)
     for hyper in listaHyper:
         modelo.set_params(**hyper)
         print(hyper)
-        if nombreArchivoResultadosTotales != "":
-            nombreArchivoResultadosTotales = nombreGeneral 
-            for h in hyper:
-                nombreArchivoResultadosTotales = nombreArchivoResultadosTotales + "_" + h + "_" + str(hyper[h])
-        features = featureSelection(modelo,tipo,x_train,y_train,n_features,funcion_k_best,direccion_sfs,shap_split=shap_split,nombreArchivoResultadosTotales=nombreArchivoResultadosTotales+".csv")
+        featureSelectionMethod.hyperparameters = ""
+        for h in hyper:
+            featureSelectionMethod.hyperparameters += h + "_" + str(hyper[h])
+        featureSelectionMethod.selectFeatures(modelo,x_train,y_train)
+        features = featureSelectionMethod.bestFeatures
         x_train_2 = x_train[features]
         resultado = hyperparametrosCV(modelo,x_train_2,y_train)
         f = open("a.txt",'a')

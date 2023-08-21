@@ -1,10 +1,10 @@
 {
     "models":
     {
-        "Linear Regression": true,
-        "Random Forest":false,
-        "SVM":false,
-        "XGBoost":false
+        "Linear Regression": {"use":false, "gpu":true},
+        "Random Forest":{"use":false, "gpu":true},
+        "SVM":{"use":false, "gpu":true},
+        "XGBoost":{"use":true, "gpu":true}
     },
 
     "feature_selection":
@@ -19,7 +19,7 @@
             {
                 "number_features":"best",
                 "use":true,
-                "scoreFunc":"f_regression"
+                "scoreFunc":"r_regression"
             },
             {
                 "number_features":"best",
@@ -39,22 +39,23 @@
             {
                 "number_features":"best",
                 "use":false,
-                "background_split":0.001
+                "background_split":0.001,
+                "gpu":true
             }
         ],
         "SFS":
         [
             {
                 "number_features":"best",
-                "use":true,
+                "use":false,
                 "direction":"forward",
-                "jobs": 8
+                "jobs": 1
             },
             {
                 "number_features":"best",
-                "use":true,
+                "use":false,
                 "direction":"backward",
-                "jobs": 8
+                "jobs": 1
             }
         ]
     },
@@ -64,10 +65,9 @@
         "Linear Regression":{},
         "XGBoost":
         {
-            "learning_rate":    [0.05,0.1,0.3],
+            "learning_rate":    [0.1,0.3],
             "max_depth":        [5,10,20],
-            "n_estimators":     [100,500,1000],
-            "tree_method": ["gpu_hist"]
+            "n_estimators":     [100,500,1000]
         },
         "Random Forest":
         {
