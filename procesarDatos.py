@@ -1,8 +1,8 @@
 from sklearn import preprocessing
-from sklearn.model_selection import train_test_split
 import re
 import pandas as pd
 import numpy as np
+from lectorParametros import LectorParametros
 
 def verificarConstancia(datos, threshold = 0.8):
     columnasConstantes = []
@@ -89,3 +89,16 @@ def procesarHyperparametros(hyperparametros):
                 valorHyper = bool(valorHyper)
             dic_hyperparametros[nombreHyper] = valorHyper
     return dic_hyperparametros
+
+def main():
+    lector = LectorParametros()
+    diccionarioValores = lector.leerParametros()
+    nombreArchivoDatos = diccionarioValores["datos"]
+    datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
+    x_train,y_train = procesarDatos(datos,scale=False)
+    x_train.insert(0,"smiles",datos["smiles"])
+    x_train.insert(1,datos.columns[1],y_train)
+    x_train.to_csv("Datasets/proc_" + nombreArchivoDatos,index=False)
+
+if __name__ == "__main__":
+    main()

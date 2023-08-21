@@ -5,8 +5,9 @@ import rpy2.robjects as ro
 from descriptoresRDKit import calcularDescriptoresRDKit
 from descriptoresJazzy import calcularDescriptoresJazzy
 from openbabel import pybel
-import warnings
 from rdkit.Chem import CanonSmiles
+from lectorParametros import LectorParametros
+from sklearn.model_selection import train_test_split
 
 pandas2ri.activate()
 
@@ -60,4 +61,28 @@ def calcularDescriptores(smiles):
     descriptors.insert(0,"smiles",smilesCanon)
     return descriptors
 
+def crearDataset(datos,nombreArchivo,split,porcentajeSplit,prefijo=""):
+    datos.sort_index(inplace=True)
+    if split:
+        datos_train,datos_test= train_test_split(datos,test_size=porcentajeSplit,random_state=3006)
+        crearDataset(datos_train,nombreArchivo,split=False,porcentajeSplit=0,prefijo="train_")
+        crearDataset(datos_test,nombreArchivo,split=False,porcentajeSplit=0,prefijo="test_")
+    else:
+        smiles = datos["smiles"].to_numpy()
+        objetivo = datos[datos.columns[1]].to_numpy()
+        dataset = calcularDescriptores(smiles)
+        dataset.insert(1,datos.columns[1],objetivo)
+        for index in range(2,len(datos.columns)):
+            dataset.insert(2,datos.columns[index],datos[datos.columns[index]].to_numpy())
+        dataset.to_csv("Datasets/"+prefijo+"desc_"+nombreArchivo,index=False)
 
+def main():
+    lector = LectorParametros()
+    diccionarioValores = lector.leerParametros()
+    nombreArchivoDatos = diccionarioValores["datos"]
+    split = diccionarioValores["split"]
+    porcentajeSplit = diccionarioValores["porcentajeSplit"]
+    crearDataset(pd.read_csv("Datasets/"+nombreArchivoDatos),nombreArchivoDatos,split=split,porcentajeSplit=porcentajeSplit)
+
+if __name__ == "__main__":
+    main()

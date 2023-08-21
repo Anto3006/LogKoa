@@ -1,8 +1,10 @@
 import pandas as pd
-import numpy as np
 from sklearn.metrics import mean_squared_error, mean_absolute_error, r2_score
 import matplotlib.pyplot as plt
 import shap
+from lectorParametros import LectorParametros
+import pickle
+import os
 
 def mean_signed_error(y,y_pred):
     return ((y-y_pred)/len(y)).mean()
@@ -63,10 +65,35 @@ def generarShap(modelo, nombreBase, x_train, x_test, titulo=""):
     plt.savefig("shap_bar"+nombreBase+".png",bbox_inches="tight")
     plt.clf()
 
-def guardarResultadosBusqueda(nombreArchivo,nombreModelo,featureSelection,mejorResultado,mejoresHyper,features,numeroFeatures):
-    mejoresHyper = str(mejoresHyper).replace('{','').replace('}','').replace(':','=').replace("'","").replace(' ','')
-    features = str(features).replace('[','').replace(']','').replace(',','').replace("'","")
-    archivo = open(nombreArchivo,"a")
-    archivo.write(nombreModelo + "," + featureSelection + "," + mejoresHyper + "," + str(mejorResultado) + "," + str(numeroFeatures) + "," + features + "\n")
-    archivo.close()
+def evaluarModelosGuardados(x,y,nombreArchivo,tipo="test",generarFigura=True):
+    modelos = os.listdir('Modelos')
+    modelos.sort()
+    resultados = pd.DataFrame(columns=["R2","RMSE","MUE","MSE"])
+    for nombreModelo in modelos:
+        modelo = pickle.load(open("Modelos/"+nombreModelo, 'rb'))
+        nombreModelo = ".".join(nombreModelo.split(".")[0:-1])
+        features = modelo.feature_names_in_
+        x_2 = x[features]
+        evaluacion = evaluarModelo(modelo,x_2,y,nombreModelo,generarFigura=generarFigura)
+        resultados = resultados.append(evaluacion,ignore_index=True)
+    resultados.index = modelos
+    modo = "w"
+    if nombreArchivo+".xlsx" in os.listdir():
+        modo = "a"
+    writer = pd.ExcelWriter(nombreArchivo+".xlsx",engine="openpyxl",mode=modo)
+    resultados.to_excel(writer,sheet_name=tipo,engine="openpyxl")
+    writer.close()
+
+def main():
+    lector = LectorParametros()
+    diccionarioValores = lector.leerParametros()
+    nombreArchivoDatos = diccionarioValores["datos"]
+    tipo = diccionarioValores["tipo"]
+    datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
+    y = datos[datos.columns[1]]
+    x = datos.drop(columns=[datos.columns[1],"smiles"])
+    evaluarModelosGuardados(x,y,"evaluacion_modelos",tipo=tipo,generarFigura=False)
+
+if __name__ == "__main__":
+    main()
  
