@@ -44,12 +44,12 @@ def scaleData(scaler,dataFrame):
     dataFrameScaled = pd.DataFrame(scaler.transform(dataFrame),columns=dataFrame.columns,index=dataFrame.index)
     return dataFrameScaled
 
-def procesarDatos(datos,thresholdConstancia=0.8,thresholdCorrelacion=0.95,scale=False):
+def procesarDatos(datos,thresholdColumnNa=0.2,thresholdConstancia=0.8,thresholdCorrelacion=0.95,scale=False):
     y = datos[datos.columns[1]]
     x = datos.copy(deep=True)
     x.drop(columns=[datos.columns[1],"smiles"],inplace=True)
     x.replace(r'^\s*$', np.nan, regex=True,inplace=True)
-    colNa = columnasNa(x)
+    colNa = columnasNa(x,thresholdColumnNa)
     print(colNa)
     x.drop(columns=colNa,inplace=True)
     filNa = filasNa(x)
@@ -96,8 +96,9 @@ def main():
     nombreArchivoDatos = diccionarioValores["datos"]
     constThreshold = diccionarioValores["constThreshold"]
     corrThreshold = diccionarioValores["corrThreshold"]
+    colNAThreshold = diccionarioValores["colNAThreshold"]
     datos = pd.read_csv("Datasets/"+nombreArchivoDatos)
-    x_train,y_train = procesarDatos(datos,thresholdConstancia=constThreshold,thresholdCorrelacion=corrThreshold,scale=False)
+    x_train,y_train = procesarDatos(datos,thresholdColumnNa=colNAThreshold,thresholdConstancia=constThreshold,thresholdCorrelacion=corrThreshold,scale=False)
     x_train.insert(0,"smiles",datos["smiles"])
     x_train.insert(1,datos.columns[1],y_train)
     x_train.to_csv("Datasets/proc_" + nombreArchivoDatos,index=False)

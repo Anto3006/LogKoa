@@ -16,12 +16,13 @@ def guardarModelosMejoresCV(archivo,x_train,y_train,threshold):
     datos = archivo
     for index, row in datos.iterrows():
         if str(row["Score"]) != " " and float(row["Score"]) < threshold:
-            hyp = str(row["Hyperparametros"])
+            hyp = str(row["Hyperparameters"])
             if hyp == "nan" or hyp == " ":
                 hyp = ""
-            nombreModelo = row["Modelo"].strip()
-            print(nombreModelo)
-            modelo = crearModelo(nombreModelo)
+            nombreModelo = row["Model"].strip()
+            isModelGPU = row["GPU"]
+            print(nombreModelo,"gpu:",isModelGPU)
+            modelo = crearModelo(nombreModelo,isModelGPU)
             if hyp != "":
                 dicHyperparametros = procesarHyperparametros(hyp)
                 modelo.set_params(**dicHyperparametros)
@@ -31,7 +32,7 @@ def guardarModelosMejoresCV(archivo,x_train,y_train,threshold):
             print(features)
             x_train_2 = x_train[features]
             modelo.fit(x_train_2,y_train)
-            pickle.dump(modelo,open("Modelos/"+nombreModelo+"_"+row["Feature Selection"]+".sav",'wb'))
+            pickle.dump(modelo,open("Modelos/"+nombreModelo+"_gpu_"+str(isModelGPU)+"_"+row["FS"]+".sav",'wb'))
 
 def main():
     lector = LectorParametros()

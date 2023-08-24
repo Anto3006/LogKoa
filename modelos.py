@@ -17,7 +17,7 @@ def crearModelo(nombreModelo,gpu=False):
         if not gpu:
             modelo = LinearRegression()
         else:
-            modelo = cumlLinearRegression(algorithm="svd-qr")
+            modelo = cumlLinearRegression(algorithm='svd-qr')
     elif nombreModelo == "Random Forest":
         if not gpu:
             modelo = RandomForestRegressor(random_state=3006)

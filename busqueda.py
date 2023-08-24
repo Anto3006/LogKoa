@@ -5,6 +5,7 @@ from featureSelection import createFeatureSelectionMethod
 from hyperparametros import gridSearch
 from lectorParametros import LectorParametros
 from modelos import crearModelo, ONLY_CPU
+import os
 
 
 def busqueda(nombreArchivoDatos,nombreArchivoCrossValidation,split,porcentajeSplit):
@@ -29,11 +30,12 @@ def busqueda(nombreArchivoDatos,nombreArchivoCrossValidation,split,porcentajeSpl
         useGPU = (not ONLY_CPU) and datosModelos[nombreModelo]["gpu"] 
         if isUsed:
             modelo = crearModelo(nombreModelo,useGPU)
+
             dicModelo = datosHyperparametros[nombreModelo]
-            busquedaCompleta(modelo,nombreModelo,nombreArchivoCrossValidation,x_train,y_train,dicModelo,datosFeatureSelection)
+            busquedaCompleta(modelo,useGPU,nombreModelo,nombreArchivoCrossValidation,x_train,y_train,dicModelo,datosFeatureSelection)
 
 
-def busquedaCompleta(modelo,nombreModelo,nombreArchivoCrossValidation,x_train,y_train,diccionarioHyperparametros,datosFeatureSelection):
+def busquedaCompleta(modelo,useGPU,nombreModelo,nombreArchivoCrossValidation,x_train,y_train,diccionarioHyperparametros,datosFeatureSelection):
     for featureSelectionName in datosFeatureSelection:
         for parameters in datosFeatureSelection[featureSelectionName]:
             if parameters["use"]:
@@ -44,13 +46,19 @@ def busquedaCompleta(modelo,nombreModelo,nombreArchivoCrossValidation,x_train,y_
                 elif featureSelectionName == "SFS":
                     parameters["fileAllResults"] += "_" + parameters["direction"]
                 bestResult, bestHyper, bestFeatures, numberFeatures = gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperparametros)
-                guardarResultadosBusqueda(nombreArchivoCrossValidation,nombreModelo,featureSelectionName,bestResult,bestHyper,bestFeatures,numberFeatures)
+                guardarResultadosBusqueda(nombreArchivoCrossValidation,nombreModelo,useGPU,featureSelectionName,parameters,bestResult,bestHyper,bestFeatures,numberFeatures)
 
-def guardarResultadosBusqueda(nombreArchivo,nombreModelo,featureSelection,mejorResultado,mejoresHyper,features,numeroFeatures):
+def guardarResultadosBusqueda(nombreArchivo,nombreModelo,useGPU,featureSelection,parametrosFeatureSelection,mejorResultado,mejoresHyper,features,numeroFeatures):
+    parametrosFeatureSelection = [(parametro,parametrosFeatureSelection[parametro]) for parametro in parametrosFeatureSelection if parametro not in ["use","number_features","fileAllResults"]]
+    parametrosFeatureSelection = str(parametrosFeatureSelection).replace('[','').replace(']','').replace(',','').replace("'","")
     mejoresHyper = str(mejoresHyper).replace('{','').replace('}','').replace(':','=').replace("'","").replace(' ','')
     features = str(features).replace('[','').replace(']','').replace(',','').replace("'","")
-    archivo = open("CrossValidation/" + nombreArchivo,"a")
-    archivo.write(nombreModelo + "," + featureSelection + "," + mejoresHyper + "," + str(mejorResultado) + "," + str(numeroFeatures) + "," + features + "\n")
+    if not os.path.exists("CrossValidation/" + nombreArchivo):
+        archivo = open("CrossValidation/" + nombreArchivo,"w")
+        archivo.write("Model,GPU,FS,param_FS,Hyperparameters,Score,Number Features,Features\n")
+    else:
+        archivo = open("CrossValidation/" + nombreArchivo,"a")
+    archivo.write(nombreModelo + "," + str(useGPU) + "," + featureSelection + "," + parametrosFeatureSelection + "," + mejoresHyper + "," + str(mejorResultado) + "," + str(numeroFeatures) + "," + features + "\n")
     archivo.close()
 
 def main():

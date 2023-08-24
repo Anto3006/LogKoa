@@ -38,7 +38,7 @@
         [
             {
                 "number_features":"best",
-                "use":false,
+                "use":true,
                 "background_split":0.05,
                 "gpu":true
             }
@@ -49,13 +49,13 @@
                 "number_features":"best",
                 "use":true,
                 "direction":"forward",
-                "jobs": 1
+                "jobs": 8
             },
             {
                 "number_features":"best",
                 "use":true,
                 "direction":"backward",
-                "jobs": 1
+                "jobs": 8
             }
         ]
     },

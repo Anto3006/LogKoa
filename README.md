@@ -27,9 +27,10 @@ python main.py desc -d archivoDatos.csv -s 0.15
 - Elimina columnas constantes, columnas o filas con datos faltantes y columnas altamente correlacionadas.
 - El archivo con los datos tiene que estar en la carpeta Datasets, si lo obtuvo al calcular los descriptores con esta herramienta ya se encuentra ahí, nada más verifique el nombre del archivo.
 - Ejecutar el archivo procesarDatos.py seleccionando el archivo con los datos
-- (Opcional) Se puede cambiar el threshold de constancia y de correlación, con las opciones --cont y --corr respectivamente
+- (Opcional) Se puede cambiar el threshold para eliminar columnas con valores NA, con la opciones --colNA. Si una columna tiene una proporción mayor de colNA a la indicada se elimina.
+- (Opcional) Se puede cambiar el threshold de constancia y de correlación, con las opciones --const y --corr respectivamente
 ```
-python procesarDatos.py -d archivoDatos.csv --const 0.8 --corr 0.95
+python procesarDatos.py -d archivoDatos.csv --const 0.8 --corr 0.95 --colNA 0.2
 ```
 - Puede hacer lo mismo con el archivo main.py, con la opción proc
 ```

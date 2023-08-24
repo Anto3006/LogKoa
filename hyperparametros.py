@@ -18,8 +18,7 @@ def gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperpar
             featureSelectionMethod.hyperparameters += h + "_" + str(hyper[h])
         featureSelectionMethod.selectFeatures(modelo,x_train,y_train)
         features = featureSelectionMethod.bestFeatures
-        x_train_2 = x_train[features]
-        resultado = hyperparametrosCV(modelo,x_train_2,y_train)
+        resultado = featureSelectionMethod.bestScore
         f = open("a.txt",'a')
         f.write(str(resultado) + " "  + str(hyper) + " " + str(features) + "\n")
         f.close()
