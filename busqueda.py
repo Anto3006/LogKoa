@@ -41,6 +41,8 @@ def busquedaCompleta(modelo,nombreModelo,nombreArchivoCrossValidation,x_train,y_
                 parameters["fileAllResults"] = nombreModelo + "_"+ featureSelectionName
                 if featureSelectionName == "UFS":
                     parameters["fileAllResults"] += "_" + parameters["scoreFunc"]
+                elif featureSelectionName == "SFS":
+                    parameters["fileAllResults"] += "_" + parameters["direction"]
                 bestResult, bestHyper, bestFeatures, numberFeatures = gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperparametros)
                 guardarResultadosBusqueda(nombreArchivoCrossValidation,nombreModelo,featureSelectionName,bestResult,bestHyper,bestFeatures,numberFeatures)
 

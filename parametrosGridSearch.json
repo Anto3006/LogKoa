@@ -1,10 +1,10 @@
 {
     "models":
     {
-        "Linear Regression": {"use":false, "gpu":true},
+        "Linear Regression": {"use":true, "gpu":true},
         "Random Forest":{"use":false, "gpu":true},
         "SVM":{"use":false, "gpu":true},
-        "XGBoost":{"use":true, "gpu":true}
+        "XGBoost":{"use":false, "gpu":true}
     },
 
     "feature_selection":
@@ -31,7 +31,7 @@
         [
             {
                 "number_features":"best",
-                "use":false
+                "use":true
             }
         ],
         "RFE_SHAP":
@@ -39,7 +39,7 @@
             {
                 "number_features":"best",
                 "use":false,
-                "background_split":0.001,
+                "background_split":0.05,
                 "gpu":true
             }
         ],
@@ -47,13 +47,13 @@
         [
             {
                 "number_features":"best",
-                "use":false,
+                "use":true,
                 "direction":"forward",
                 "jobs": 1
             },
             {
                 "number_features":"best",
-                "use":false,
+                "use":true,
                 "direction":"backward",
                 "jobs": 1
             }

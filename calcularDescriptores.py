@@ -38,12 +38,12 @@ def calcularDescriptoresCDK(smiles):
 
 
 def calcularDescriptoresObabel(smiles):
-    descriptorsObabel = pandas.DataFrame()
+    descriptorsObabel = pd.DataFrame()
     i = 0
     for smile in smiles:
         mol = pybel.readstring("smi",smile)
         desc = mol.calcdesc()
-        descriptorsObabel = pandas.concat([descriptorsObabel,pandas.DataFrame(desc,index=[i])])
+        descriptorsObabel = pd.concat([descriptorsObabel,pd.DataFrame(desc,index=[i])])
         i+=1
     descriptorsObabel.drop(columns=["cansmi","cansmiNS","formula","title","InChI","InChIKey","smarts"],inplace=True)
     return descriptorsObabel
@@ -57,7 +57,7 @@ def calcularDescriptores(smiles):
     descriptorsObabel = calcularDescriptoresObabel(smilesCanon)
     descriptoresRDKit = calcularDescriptoresRDKit(smilesCanon)
     descriptoresJazzy = calcularDescriptoresJazzy(smilesCanon)
-    descriptors = pandas.concat([descriptoresJazzy,descriptorsCDK,descriptoresRDKit,descriptorsObabel],axis=1)
+    descriptors = pd.concat([descriptoresJazzy,descriptorsCDK,descriptoresRDKit,descriptorsObabel],axis=1)
     descriptors.insert(0,"smiles",smilesCanon)
     return descriptors
 
