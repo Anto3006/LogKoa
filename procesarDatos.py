@@ -47,26 +47,33 @@ def scaleData(scaler,dataFrame):
 def procesarDatos(datos,thresholdColumnNa=0.2,thresholdConstancia=0.8,thresholdCorrelacion=0.95,scale=False):
     y = datos[datos.columns[1]]
     x = datos.copy(deep=True)
+    print(x)
     x.drop(columns=[datos.columns[1],"smiles"],inplace=True)
     x.replace(r'^\s*$', np.nan, regex=True,inplace=True)
     colNa = columnasNa(x,thresholdColumnNa)
-    print(colNa)
+    print("Columnas eliminadas por NA:", colNa)
     x.drop(columns=colNa,inplace=True)
-    filNa = filasNa(x)
-    print(filNa)
-    x.drop(index=filNa,inplace=True)
-    y.drop(index=filNa,inplace=True)
+    print(x)
     if scale:
         scaler = preprocessing.StandardScaler()
         x = scaleData(scaler,x)
     #Eliminar datos constantes
     columnasConstantes = verificarConstancia(x,thresholdConstancia)
+    print(f"Columnas eliminadas por constancia superior a {thresholdConstancia}:",columnasConstantes)
     x.drop(columns=columnasConstantes,inplace=True)
+    print(x)
     #Eliminar datos altamentes correlacionados
     matrizCorrelacion = x.corr().abs()
     triangularSuperior = matrizCorrelacion.where(np.triu(np.ones(matrizCorrelacion.shape),k=1).astype(np.bool_))
     colCorr = [column for column in triangularSuperior.columns if any(triangularSuperior[column] > thresholdCorrelacion)]
+    print(f"Columnas eliminadas por correlacion superior a {thresholdCorrelacion}:",colCorr)
     x.drop(columns=colCorr,inplace=True)
+    print(x)
+    filNa = filasNa(x)
+    print("Filas eliminadas por NA:",filNa)
+    x.drop(index=filNa,inplace=True)
+    print(x)
+    y.drop(index=filNa,inplace=True)
     return x,y
 
 def procesarHyperparametros(hyperparametros):

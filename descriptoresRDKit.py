@@ -104,7 +104,7 @@ def calcularDescriptores(molecula):
 
     return descriptores
 
-def calcularDescriptores2(molecula):
+def calcularDescriptoresNuevo(molecula):
     descriptores = Chem.Descriptors.CalcMolDescriptors(molecula)
     descriptores["NumAmideBonds"] = rdMolDescriptors.CalcNumAmideBonds(molecula)
     descriptores["NumSpiroAtoms"] = rdMolDescriptors.CalcNumSpiroAtoms(molecula)
@@ -134,13 +134,13 @@ def calcularDescriptoresRDKit(smiles):
     for smile in smiles:
         try:
             molecula = Chem.MolFromSmiles(smile)
-            descriptores = calcularDescriptores2(molecula)
+            descriptores = calcularDescriptoresNuevo(molecula)
             for descriptor in descriptores:
-                if descriptor in descriptoresRDKit:
-                    descriptoresRDKit[descriptor].append(descriptores[descriptor])
+                if (descriptor+"_rdkit") in descriptoresRDKit:
+                    descriptoresRDKit[descriptor+"_rdkit"].append(descriptores[descriptor])
                 else:
-                    descriptoresRDKit[descriptor] = [descriptores[descriptor]]
+                    descriptoresRDKit[descriptor+"_rdkit"] = [descriptores[descriptor]]
         except:
             for descriptor in descriptoresRDKit:
-                descriptoresRDKit[descriptor].append("")
+                descriptoresRDKit[descriptor+"_rdkit"].append("")
     return pd.DataFrame(descriptoresRDKit)

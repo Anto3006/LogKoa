@@ -56,11 +56,11 @@ python main.py search -d archivoDatos.csv -c archivoCrossValidation.csv
 - De acuerdo a su valor de cross-validation se seleccionan los mejores modelos, se entrenan y se guardan
 - Se ejecuta el archivo guardarModelos.py seleccionando el archivo con los datos, el archivo con los cross-validation y el threshold de cross-validation score para guardar un modelo
 ```
-python guardarModelos.py -d archivoDatos.csv -c archivoCrossValidation.csv -ct 0.5
+python guardarModelos.py -d archivoDatos.csv -c archivoCrossValidation.csv -h 0.5
 ```
 - Se puede ejecutar desde el archivo main con la opción train
 ```
-python main.py train -d archivoDatos.csv -c archivoCrossValidation.csv -ct 0.5
+python main.py train -d archivoDatos.csv -c archivoCrossValidation.csv -h 0.5
 ```
 
 ## Evaluar modelos

@@ -46,6 +46,8 @@ def calcularDescriptoresObabel(smiles):
         descriptorsObabel = pd.concat([descriptorsObabel,pd.DataFrame(desc,index=[i])])
         i+=1
     descriptorsObabel.drop(columns=["cansmi","cansmiNS","formula","title","InChI","InChIKey","smarts"],inplace=True)
+    columnas = [col + "_Obabel" for col in descriptorsObabel.columns]
+    descriptorsObabel.columns = columnas
     return descriptorsObabel
 
 def calcularDescriptores(smiles):
