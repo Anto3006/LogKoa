@@ -118,8 +118,11 @@ class SequentialFeatureSelection(FeatureSelectionMethod):
         self.bestScore = hyperparametrosCV(model,x_train_2,y_train)
     
     def selectBestFeaturesUnlimited(self, model, x_train, y_train):
-        selector = SFS(model,k_features="best",forward=(self.parameters["direction"]=="forward"),n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
-        selector.fit(x_train,y_train)
+        try:
+            selector = SFS(model,k_features="best",verbose=2,clone_estimator=False,forward=(self.parameters["direction"]=="forward"),n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
+            selector.fit(x_train,y_train)
+        except KeyboardInterrupt:
+            selector.finalize_fit()
         self.bestFeatures = list(selector.k_feature_names_)
         x_train_2 = x_train[self.bestFeatures]
         self.bestScore = hyperparametrosCV(model,x_train_2,y_train)
@@ -197,7 +200,6 @@ def caracteristicaMenosImportante(modelo,x_train,y_train,shap_split=0.05,useGPU=
     #Calcula los valores shap para cada característica
     for i in range(valores_shap.shape[1]):
         importancias.append(np.mean(np.abs(valores_shap[:, i])))
-    
     
     importancias_caracteristicas = {fea: imp for imp, fea in zip(importancias, x_train.columns)}
     

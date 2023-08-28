@@ -15,12 +15,11 @@ def busqueda(nombreArchivoDatos,nombreArchivoCrossValidation,split,porcentajeSpl
     x_train = x_train.astype("float32")
 
     if split:
-        x_train,y_train,_,_ = train_test_split(x_train,y_train,test_size=porcentajeSplit,random_state=3006)
+        x_train,_,y_train,_ = train_test_split(x_train,y_train,test_size=porcentajeSplit,random_state=3006)
 
     archivoJson = open("parametrosGridSearch.json","r")
     datosGridSearch = json.load(archivoJson)
         
-
     datosHyperparametros = datosGridSearch["hyperparameters"]
     datosModelos = datosGridSearch["models"]
     datosFeatureSelection = datosGridSearch["feature_selection"]
