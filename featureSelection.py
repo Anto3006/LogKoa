@@ -176,7 +176,6 @@ def createFeatureSelectionMethod(featureSelectionName, parameters):
 
 
 def hyperparametrosCV(modelo,x_train,y_train):
-    print(modelo.get_params())
     scores = cross_val_score(modelo,x_train,y_train,cv=5,scoring="neg_root_mean_squared_error",error_score="raise")
     mean_score = np.mean(scores)
     return mean_score
