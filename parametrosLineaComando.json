@@ -1,0 +1,26 @@
+{
+    "llaves":
+    {
+        "-d":"datos",
+        "--dataset":"datos",
+        "-c":"validacion",
+        "--cross-validacion":"validacion",
+        "-t":"tipo",
+        "--tipo":"tipo",
+        "-s":"porcentajeSplit",
+        "--split":"porcentajeSplit",
+        "--const":"constThreshold",
+        "--corr":"corrThreshold",
+        "-h":"cvThreshold",
+        "--cvThreshold":"cvThreshold",
+        "--colNA":"colNAThreshold"
+    },
+    "valores_default":
+    {
+        "split":false,
+        "porcentajeSplit":0.15,
+        "constThreshold":0.8,
+        "corrThreshold":0.95,
+        "colNA":0
+    }
+}
