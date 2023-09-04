@@ -194,7 +194,7 @@ def caracteristicaMenosImportante(modelo,x_train,y_train,shap_split=0.05,useGPU=
     if ONLY_CPU or not useGPU:
         explainer = shap.KernelExplainer(regresion.predict,x_train_summary, keep_index=True)
     else:
-        explainer = cumlKernelExplainer(model=regresion.predict,data=x_train_summary,random_state=3006)
+        explainer = cumlKernelExplainer(model=regresion.predict,data=x_train_summary,random_state=3006,verbose=0)
     valores_shap = explainer.shap_values(x_shap_values)
     importancias = []
     #Calcula los valores shap para cada característica

@@ -25,9 +25,9 @@ def crearModelo(nombreModelo,gpu=False):
             modelo = cumlRandomForestRegressor(accuracy_metric="mse",random_state=3006,n_streams=1)
     elif nombreModelo == "SVM":
         if not gpu:
-            modelo = LinearSVR(random_state=3006,max_iter=10000)
+            modelo = LinearSVR(random_state=3006,max_iter=10000,dual=False)
         else:
-            modelo = cumlLinearSVR(max_iter=10000)
+            modelo = cumlLinearSVR(max_iter=10000,verbose=0)
     elif nombreModelo == "XGBoost":
         if not gpu:
             modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
