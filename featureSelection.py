@@ -183,7 +183,7 @@ def hyperparametrosCV(modelo,x_train,y_train):
     mean_score = np.mean(scores)
     return mean_score
 
-#Devuelve el nombre de la característica con el menor valor absoluto shap, la que se considera de menor importancia
+#Devuelve el nombre de la característica con el menor promedio valor absoluto shap, la que se considera de menor importancia
 def caracteristicaMenosImportante(modelo,x_train,y_train,shap_split=0.05,useGPU=False):
     regresion = modelo.fit(x_train,y_train)
     cluster_kmeans = KMeans(n_clusters=10,n_init="auto")
@@ -192,18 +192,18 @@ def caracteristicaMenosImportante(modelo,x_train,y_train,shap_split=0.05,useGPU=
     x_train_summary = pd.DataFrame(data=cluster_kmeans.cluster_centers_,columns=x_train.columns)
     explainer = None
     if ONLY_CPU or not useGPU:
-        explainer = shap.KernelExplainer(regresion.predict,x_train_summary, keep_index=True)
+        explainer = shap.KernelExplainer(regresion.predict,cluster_kmeans.cluster_centers_)
     else:
         explainer = cumlKernelExplainer(model=regresion.predict,data=x_train_summary,random_state=3006,verbose=0)
     valores_shap = explainer.shap_values(x_shap_values)
     importancias = []
-    #Calcula los valores shap para cada característica
+    #Calcula el promedio sobre los datos de los valores absolutos de los valores shap para cada característica
     for i in range(valores_shap.shape[1]):
         importancias.append(np.mean(np.abs(valores_shap[:, i])))
     
     importancias_caracteristicas = {fea: imp for imp, fea in zip(importancias, x_train.columns)}
     
-    importancias_caracteristicas = [(k,v) for k, v in sorted(importancias_caracteristicas.items(), key=lambda item: item[1], reverse = True)]
+    importancias_caracteristicas = [(feature,value) for feature, value in sorted(importancias_caracteristicas.items(), key=lambda item: item[1], reverse = True)]
 
     return importancias_caracteristicas[-1]
 

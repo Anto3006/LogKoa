@@ -33,9 +33,12 @@ class LectorParametros:
         for parametro in self.parameterMap:
             llave = self.parameterMap[parametro]
             if llave not in diccionarioValores:
+                if llave == "porcentajeSplit":
+                    diccionarioValores["split"] = True
                 if llave in self.defaultValues:
                     diccionarioValores[llave] = self.defaultValues[llave]
                 else:
                     diccionarioValores[llave] = None
+
         return diccionarioValores
 
