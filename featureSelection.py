@@ -89,7 +89,7 @@ class RecursiveFeatureElimination(FeatureSelectionMethod):
         super().__init__(parameters)
     
     def selectBestFeaturesUnlimited(self, model, x_train, y_train):
-        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error")
+        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error",n_jobs=self.parameters["jobs"])
         selector.fit(x_train,y_train)
         if self.parameters["fileAllResults"] != "":
             results = np.abs(np.array(selector.cv_results_["mean_test_score"]))
@@ -135,6 +135,7 @@ class RecursiveFeatureEliminationSHAP(FeatureSelectionMethod):
     def __init__(self, parameters):
         super().__init__(parameters)
     
+    
     def selectBestFeaturesK(self, model, x_train, y_train):
         x_train_2 = x_train.copy(deep=True)
         while len(x_train_2.columns) > self.parameters["number_features"]:
@@ -144,7 +145,7 @@ class RecursiveFeatureEliminationSHAP(FeatureSelectionMethod):
         self.bestFeatures = x_train_2.columns
         x_train_2 = x_train[self.bestFeatures]
         self.bestScore = hyperparametrosCV(model,x_train_2,y_train)
-    
+      
     def selectBestFeaturesUnlimited(self, model, x_train, y_train):
         x_train_2 = x_train.copy(deep=True)
         model.fit(x_train_2,y_train)
@@ -155,7 +156,7 @@ class RecursiveFeatureEliminationSHAP(FeatureSelectionMethod):
             print(len(x_train_2.columns))
             car = caracteristicaMenosImportante(model,x_train_2,y_train,shap_split=self.parameters["background_split"],useGPU=self.parameters["gpu"])
             x_train_2.drop(columns=[car[0]],inplace=True)
-            features = copy.deepcopy(x_train_2.columns)
+            features = list(x_train_2.columns)
             cvScore = hyperparametrosCV(model,x_train_2,y_train)
             results.append(str(cvScore) + "," + str(features).replace(',',' ').replace('\n',' '))
             if cvScore > bestResult:
@@ -166,7 +167,7 @@ class RecursiveFeatureEliminationSHAP(FeatureSelectionMethod):
         self.bestFeatures = bestFeatures
         x_train_2 = x_train[self.bestFeatures]
         self.bestScore = hyperparametrosCV(model,x_train_2,y_train)
-
+    
 def createFeatureSelectionMethod(featureSelectionName, parameters):
     if featureSelectionName == "UFS":
         return UnivariateFeatureSelection(parameters)
@@ -185,26 +186,27 @@ def hyperparametrosCV(modelo,x_train,y_train):
 
 #Devuelve el nombre de la característica con el menor promedio valor absoluto shap, la que se considera de menor importancia
 def caracteristicaMenosImportante(modelo,x_train,y_train,shap_split=0.05,useGPU=False):
-    regresion = modelo.fit(x_train,y_train)
+    modelo.fit(x_train,y_train)
     cluster_kmeans = KMeans(n_clusters=10,n_init="auto")
     x_background,x_shap_values = train_test_split(x_train,test_size=shap_split,random_state=3006)
     cluster_kmeans.fit(x_background)
     x_train_summary = pd.DataFrame(data=cluster_kmeans.cluster_centers_,columns=x_train.columns)
     explainer = None
     if ONLY_CPU or not useGPU:
-        explainer = shap.KernelExplainer(regresion.predict,cluster_kmeans.cluster_centers_)
+        explainer = shap.KernelExplainer(modelo.predict,cluster_kmeans.cluster_centers_)
     else:
-        explainer = cumlKernelExplainer(model=regresion.predict,data=x_train_summary,random_state=3006,verbose=0)
+        explainer = cumlKernelExplainer(model=modelo.predict,data=x_train_summary,random_state=3006,verbose=0)
     valores_shap = explainer.shap_values(x_shap_values)
     importancias = []
     #Calcula el promedio sobre los datos de los valores absolutos de los valores shap para cada característica
     for i in range(valores_shap.shape[1]):
         importancias.append(np.mean(np.abs(valores_shap[:, i])))
+    print(importancias)
     
     importancias_caracteristicas = {fea: imp for imp, fea in zip(importancias, x_train.columns)}
     
     importancias_caracteristicas = [(feature,value) for feature, value in sorted(importancias_caracteristicas.items(), key=lambda item: item[1], reverse = True)]
-
+    print(importancias_caracteristicas[-1])
     return importancias_caracteristicas[-1]
 
 def guardarResultadosTotales(resultados,archivoResultadosTotales):
