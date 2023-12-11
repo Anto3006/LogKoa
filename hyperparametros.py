@@ -28,3 +28,4 @@ def gridSearch(modelo,featureSelectionMethod,x_train,y_train,diccionarioHyperpar
             mejoresFeatures = copy.deepcopy(features)
     mejoresFeatures = list(mejoresFeatures)
     return abs(mejorResultado),mejoresHyper,mejoresFeatures,len(mejoresFeatures)
+

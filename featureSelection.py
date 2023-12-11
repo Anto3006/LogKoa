@@ -77,7 +77,7 @@ class UnivariateFeatureSelection(FeatureSelectionMethod):
             guardarResultadosTotales(results,self.parameters["fileAllResults"]+self.hyperparameters)
 
     def selectBestFeaturesK(self, model, x_train, y_train):
-        featureSelector = SelectKBest(score_func=self.parameters["scoreFunc"], k=self.parameters["number_features"])
+        featureSelector = SelectKBest(score_func=self.scoreFunctions[self.parameters["scoreFunc"]], k=self.parameters["number_features"])
         featureSelector.fit(x_train,y_train)
         self.bestFeatures = featureSelector.get_feature_names_out()
         x_train_2 = x_train[self.bestFeatures]

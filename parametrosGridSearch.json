@@ -3,8 +3,9 @@
     {
         "Linear Regression": {"use":true, "gpu":false},
         "Random Forest":{"use":false, "gpu":true},
-        "SVM":{"use":false, "gpu":true},
-        "XGBoost":{"use":false, "gpu":true}
+        "SVM":{"use":false, "gpu":false},
+        "XGBoost":{"use":false, "gpu":true},
+        "MLP":{"use":false,"gpu":false}
     },
 
     "feature_selection":
@@ -13,7 +14,7 @@
         [
             {
                 "number_features":"best",
-                "use":false,
+                "use":true,
                 "scoreFunc":"f_regression"
             },
             {
@@ -38,7 +39,7 @@
         [
             {
                 "number_features":"best",
-                "use":true,
+                "use":false,
                 "background_split":0.002,
                 "gpu":false
             }
@@ -77,7 +78,8 @@
         "SVM":
         {
             "C":[0.001,0.002,0.005,0.007,0.01,0.02,0.05,0.07,0.1,0.2,0.5,0.7,1.0,2.0,5.0,10.0],
-            "epsilon":[0.1,0.2,0.5]
-        }
+            "epsilon":[0,0.1,0.2,0.5]
+        },
+        "MLP":{"max_iter":[200]}
     }
 }
