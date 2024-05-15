@@ -12,7 +12,7 @@ import numpy
 def calcularDescriptores(molecula):
     descriptores = {}
 
-    descriptores["ExactMolWeight"] = Descriptors.ExactMolWt(molecula)
+    descriptores["ExactMolWt"] = Descriptors.ExactMolWt(molecula)
     descriptores["FpDensityMorgan1"] = Descriptors.FpDensityMorgan1(molecula)
     descriptores["FpDensityMorgan2"] = Descriptors.FpDensityMorgan2(molecula)
     descriptores["FpDensityMorgan3"] = Descriptors.FpDensityMorgan3(molecula)
@@ -87,15 +87,15 @@ def calcularDescriptores(molecula):
     
     PEOE_VSA = rdMolDescriptors.PEOE_VSA_(molecula)
     for i in range(1,15):
-        descriptores["PEOE_VSA_"+str(i)] = PEOE_VSA[i-1]
+        descriptores["PEOE_VSA"+str(i)] = PEOE_VSA[i-1]
 
     SMR_VSA = rdMolDescriptors.SMR_VSA_(molecula)
     for i in range(1,11):
-        descriptores["SMR_VSA_"+str(i)] = SMR_VSA[i-1]
+        descriptores["SMR_VSA"+str(i)] = SMR_VSA[i-1]
 
     SlogP_VSA = rdMolDescriptors.SlogP_VSA_(molecula)
     for i in range(1,11):
-        descriptores["SlogP_VSA_"+str(i)] = SlogP_VSA[i-1]
+        descriptores["SlogP_VSA"+str(i)] = SlogP_VSA[i-1]
     
     
     MQNs = rdMolDescriptors.MQNs_(molecula)
@@ -109,17 +109,6 @@ def calcularDescriptoresNuevo(molecula):
     descriptores["NumAmideBonds"] = rdMolDescriptors.CalcNumAmideBonds(molecula)
     descriptores["NumSpiroAtoms"] = rdMolDescriptors.CalcNumSpiroAtoms(molecula)
     descriptores["NumBridgeheadAtoms"] = rdMolDescriptors.CalcNumBridgeheadAtoms(molecula)
-    PEOE_VSA = rdMolDescriptors.PEOE_VSA_(molecula)
-    for i in range(1,15):
-        descriptores["PEOE_VSA_"+str(i)] = PEOE_VSA[i-1]
-
-    SMR_VSA = rdMolDescriptors.SMR_VSA_(molecula)
-    for i in range(1,11):
-        descriptores["SMR_VSA_"+str(i)] = SMR_VSA[i-1]
-
-    SlogP_VSA = rdMolDescriptors.SlogP_VSA_(molecula)
-    for i in range(1,11):
-        descriptores["SlogP_VSA_"+str(i)] = SlogP_VSA[i-1]
     
     
     MQNs = rdMolDescriptors.MQNs_(molecula)
@@ -134,7 +123,7 @@ def calcularDescriptoresRDKit(smiles):
     for smile in smiles:
         try:
             molecula = Chem.MolFromSmiles(smile)
-            descriptores = calcularDescriptoresNuevo(molecula)
+            descriptores = calcularDescriptores(molecula)
             for descriptor in descriptores:
                 if (descriptor+"_rdkit") in descriptoresRDKit:
                     descriptoresRDKit[descriptor+"_rdkit"].append(descriptores[descriptor])
@@ -144,3 +133,4 @@ def calcularDescriptoresRDKit(smiles):
             for descriptor in descriptoresRDKit:
                 descriptoresRDKit[descriptor+"_rdkit"].append("")
     return pd.DataFrame(descriptoresRDKit)
+
