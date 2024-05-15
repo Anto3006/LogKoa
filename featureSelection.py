@@ -2,10 +2,20 @@ import pandas as pd
 import numpy as np
 from sklearn.feature_selection import SelectKBest
 from sklearn.model_selection import train_test_split
-from mlxtend.feature_selection import SequentialFeatureSelector as SFS
-import shap
+try:
+    from mlxtend.feature_selection import SequentialFeatureSelector as SFS
+except:
+    print("No mlxtend")
+try:
+    import shap
+except:
+    print("No shap")
 from sklearn.model_selection import cross_val_score
-from sklearn.feature_selection import r_regression, f_regression, mutual_info_regression
+try:
+    from sklearn.feature_selection import r_regression
+except:
+    print("No r_regression")
+from sklearn.feature_selection import f_regression, mutual_info_regression
 from sklearn.feature_selection import RFE
 from sklearn.feature_selection import RFECV
 from sklearn.feature_selection import SequentialFeatureSelector
@@ -93,7 +103,7 @@ class RecursiveFeatureElimination(FeatureSelectionMethod):
         super().__init__(parameters)
     
     def selectBestFeaturesUnlimited(self, model, x_train, y_train):
-        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error")
+        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error",n_jobs=-1)
         selector.fit(x_train,y_train)
         if self.parameters["fileAllResults"] != "":
             results = np.abs(np.array(selector.cv_results_["mean_test_score"]))

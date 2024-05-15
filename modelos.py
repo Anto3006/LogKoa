@@ -1,8 +1,14 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import LinearSVR
-import xgboost as xgb
+<<<<<<< HEAD
 from sklearn.neural_network import MLPRegressor
+=======
+try:
+    import xgboost as xgb
+except:
+    print("No xgboost")
+>>>>>>> Added ignore files, exceptions for failed imports
 ONLY_CPU = False
 try:
     from cuml import LinearRegression as cumlLinearRegression
@@ -95,7 +101,7 @@ def crearModelo(nombreModelo,gpu=False):
             modelo = cumlLinearRegression(algorithm='svd-qr')
     elif nombreModelo == "Random Forest":
         if not gpu:
-            modelo = RandomForestRegressor(random_state=3006)
+            modelo = RandomForestRegressor(random_state=3006,n_jobs=-1)
         else:
             modelo = cumlRandomForestRegressor(accuracy_metric="mse",random_state=3006,n_streams=1)
     elif nombreModelo == "SVM":
@@ -105,9 +111,10 @@ def crearModelo(nombreModelo,gpu=False):
             modelo = cumlLinearSVR(max_iter=10000,verbose=0)
     elif nombreModelo == "XGBoost":
         if not gpu:
-            modelo = xgb.XGBRegressor(tree_method="exact",random_state=3006)
+            modelo = xgb.XGBRegressor(tree_method="hist",random_state=3006)
         else:
             modelo = xgb.XGBRegressor(tree_method="gpu_hist",random_state=3006)
+<<<<<<< HEAD
     elif nombreModelo == "MLP":
         modelo = MLPRegressor(hidden_layer_sizes=(100,100),random_state=3006)
     return modelo
@@ -149,3 +156,6 @@ if __name__ == "__main__":
     cross_validation_score /= k_folds
     print(cross_validation_score)
         
+=======
+    return modelo
+>>>>>>> Added ignore files, exceptions for failed imports
