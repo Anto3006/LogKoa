@@ -12,11 +12,13 @@ from sklearn.feature_selection import SequentialFeatureSelector
 from sklearn.cluster import KMeans
 import copy
 import time
+from multiprocessing import Pool, cpu_count
 
 ONLY_CPU = False
 try:
     from cuml.explainer import KernelExplainer as cumlKernelExplainer
 except ImportError:
+    PRINTED = True
     print("No se encuentran instalados los paquetes para usar los modelos en GPU, solo podra usarlos en CPU")
     ONLY_CPU = True
 
@@ -49,30 +51,26 @@ class UnivariateFeatureSelection(FeatureSelectionMethod):
         self.scoreFunctions = {"f_regression":f_regression,"r_regression":r_regression,"mutual_info_regression":mutual_info_regression}
     
     def selectBestFeaturesUnlimited(self,model,x_train,y_train):
-        bestResult = -np.inf
         totalFeatures = len(x_train.columns)
         results = []
         featureSelector = SelectKBest(score_func=self.scoreFunctions[self.parameters["scoreFunc"]], k=totalFeatures)
         featureSelector.fit(x_train,y_train)
         bestFeaturesSortedIndex = sorted([index for index in range(totalFeatures)],key= lambda index: featureSelector.scores_[index], reverse=True)
         bestFeaturesSorted = featureSelector.feature_names_in_[bestFeaturesSortedIndex]
-        beginTimeInterval = time.time()
-        for numberFeatures in range(1,totalFeatures+1):
-            features = bestFeaturesSorted[0:numberFeatures]
-            x_train_2 = x_train[features]
-            cvScore = hyperparametrosCV(model,x_train_2,y_train)
-            results.append(str(abs(cvScore)) + "," + str(features).replace(',', ' ').replace('\n',' '))
-            if cvScore > bestResult:
-                bestResult = cvScore
-                self.bestFeatures = copy.deepcopy(features)
-            endTimeInterval = time.time()
-            timePassed = endTimeInterval - beginTimeInterval
-            if timePassed > 300:
-                if self.parameters["fileAllResults"] != "":
-                    guardarResultadosTotales(results,self.parameters["fileAllResults"]+self.hyperparameters)
-                results = []
-                beginTimeInterval = endTimeInterval
-        self.bestScore = bestResult
+
+        number_of_cores = cpu_count()
+        print(number_of_cores)
+        args = [(model,copy.deepcopy(x_train),y_train,copy.deepcopy(bestFeaturesSorted),numberFeatures) for numberFeatures in range(1,totalFeatures+1)]
+        with Pool(number_of_cores) as pool:
+            # distribute computations and collect results:
+            scores = pool.starmap(UnivariateFeatureSelection.scoreModel, args)
+        
+        self.bestScore = max(scores)
+        bestNumberFeatures = max(range(len(scores)), key=scores.__getitem__)+1
+        print(bestNumberFeatures)
+        self.bestFeatures = bestFeaturesSorted[0:bestNumberFeatures]
+        results = [f"{scores[i]}, {' '.join(bestFeaturesSorted[:i+1])}" for i in range(len(scores))]
+
         if self.parameters["fileAllResults"] != "":
             guardarResultadosTotales(results,self.parameters["fileAllResults"]+self.hyperparameters)
 
@@ -82,6 +80,12 @@ class UnivariateFeatureSelection(FeatureSelectionMethod):
         self.bestFeatures = featureSelector.get_feature_names_out()
         x_train_2 = x_train[self.bestFeatures]
         self.bestScore = hyperparametrosCV(model,x_train_2,y_train)
+    
+    def scoreModel(model,x_train,y_train,bestFeaturesSorted,numberFeatures):
+        features = bestFeaturesSorted[0:numberFeatures]
+        x_train_2 = x_train[features]
+        cvScore = hyperparametrosCV(model,x_train_2,y_train)
+        return cvScore
 
 class RecursiveFeatureElimination(FeatureSelectionMethod):
 
@@ -89,7 +93,7 @@ class RecursiveFeatureElimination(FeatureSelectionMethod):
         super().__init__(parameters)
     
     def selectBestFeaturesUnlimited(self, model, x_train, y_train):
-        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error",n_jobs=self.parameters["jobs"])
+        selector = RFECV(model,step=1,cv=5,scoring="neg_root_mean_squared_error")
         selector.fit(x_train,y_train)
         if self.parameters["fileAllResults"] != "":
             results = np.abs(np.array(selector.cv_results_["mean_test_score"]))
@@ -111,7 +115,7 @@ class SequentialFeatureSelection(FeatureSelectionMethod):
         super().__init__(parameters)
     
     def selectBestFeaturesK(self, model, x_train, y_train):
-        selector = SequentialFeatureSelector(model,n_features_to_select=self.parameters["number_features"],direction=self.parameters["direction"],n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
+        selector = SequentialFeatureSelector(model,cv=5,n_features_to_select=self.parameters["number_features"],direction=self.parameters["direction"],n_jobs=self.parameters["jobs"],scoring="neg_root_mean_squared_error")
         selector.fit(x_train,y_train)
         self.bestFeatures = selector.get_feature_names_out()
         x_train_2 = x_train[self.bestFeatures]
