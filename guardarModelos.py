@@ -31,8 +31,9 @@ def guardarModelosMejoresCV(archivo,x_train,y_train,threshold):
             features = [feature for feature in features if feature != ""]
             print(features)
             x_train_2 = x_train[features]
+            param_fs = str(row["param_FS"]).replace("(","").replace(")","")
             modelo.fit(x_train_2,y_train)
-            pickle.dump(modelo,open("Modelos/"+nombreModelo+"_gpu_"+str(isModelGPU)+"_"+row["FS"]+".sav",'wb'))
+            pickle.dump(modelo,open("Modelos/"+nombreModelo+"_gpu_"+str(isModelGPU)+"_"+row["FS"]+"_"+param_fs+".sav",'wb'))
 
 def main():
     lector = LectorParametros()
