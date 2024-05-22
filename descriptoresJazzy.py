@@ -9,18 +9,6 @@ import warnings
 nombresColumnas = {"sdc":"CHds","sdx":"XHds","sa":"HBAs"}
 nombresColumnasEnergias = {"dga":"HydA","dgp":"HydP","dgtot":"Hyd"}
 
-def filterDataByTemp(data,temp):
-    filtered_data = data[data["Temp"]==temp]
-    filtered_data.reset_index()
-    return filtered_data
-
-def addSmilesToDataByCas(data):
-    smiles = []
-    for cas in data["Cas_No"]:
-        smiles.append(cirpy.resolve(cas,"smiles"))
-    data["smiles2"] = smiles
-    return data
-
 def calcularDescriptoresJazzy(smiles):
     warnings.filterwarnings("ignore")
     deltag_sol_oct0 = []
@@ -71,18 +59,4 @@ def calcularDescriptoresJazzy(smiles):
     descriptores["delta_g_sol_oct"] = deltag_sol_oct
     return pandas.DataFrame(descriptores)
 
-
-def crearBaseConSmiles(nombreArchivoBaseOriginal):
-    """
-    No se calculan todos los SMILES, hay que agregar algunos manualmente
-    """
-    datos = pandas.read_csv(archivoBaseOriginal)
-    datos_25C = filterDataByTemp(datos,25)
-    datos_25C_smiles = addSmilesToDataByCas(datos_25C)
-    columnas = ["ChemID","Cas_No","Chemical_Name","Temp","log_KOA","smiles"]
-    columnas_datos = datos_25C_smiles.columns.values
-    for col in columnas_datos:
-        if not col in columnas:
-            datos_25C_smiles.drop(columns=col,inplace=True)
-    datos_25C_smiles.to_csv("logKoa_SMILES.csv")
 

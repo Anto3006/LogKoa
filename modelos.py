@@ -1,14 +1,13 @@
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.svm import LinearSVR
-<<<<<<< HEAD
 from sklearn.neural_network import MLPRegressor
-=======
 try:
     import xgboost as xgb
 except:
     print("No xgboost")
->>>>>>> Added ignore files, exceptions for failed imports
+
+
 ONLY_CPU = False
 try:
     from cuml import LinearRegression as cumlLinearRegression
@@ -114,7 +113,6 @@ def crearModelo(nombreModelo,gpu=False):
             modelo = xgb.XGBRegressor(tree_method="hist",random_state=3006)
         else:
             modelo = xgb.XGBRegressor(tree_method="gpu_hist",random_state=3006)
-<<<<<<< HEAD
     elif nombreModelo == "MLP":
         modelo = MLPRegressor(hidden_layer_sizes=(100,100),random_state=3006)
     return modelo
@@ -155,7 +153,3 @@ if __name__ == "__main__":
         cross_validation_score += split_score
     cross_validation_score /= k_folds
     print(cross_validation_score)
-        
-=======
-    return modelo
->>>>>>> Added ignore files, exceptions for failed imports
