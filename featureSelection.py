@@ -68,12 +68,21 @@ class UnivariateFeatureSelection(FeatureSelectionMethod):
         bestFeaturesSortedIndex = sorted([index for index in range(totalFeatures)],key= lambda index: featureSelector.scores_[index], reverse=True)
         bestFeaturesSorted = featureSelector.feature_names_in_[bestFeaturesSortedIndex]
 
-        number_of_cores = cpu_count()
+        max_cores = 1
+        number_of_cores = min(cpu_count(),max_cores)
         print(number_of_cores)
-        args = [(model,copy.deepcopy(x_train),y_train,copy.deepcopy(bestFeaturesSorted),numberFeatures) for numberFeatures in range(1,totalFeatures+1)]
-        with Pool(number_of_cores) as pool:
-            # distribute computations and collect results:
-            scores = pool.starmap(UnivariateFeatureSelection.scoreModel, args)
+        if number_of_cores == 1:
+            scores = []
+            for number_features in range(len(bestFeaturesSorted)):
+                features = bestFeaturesSorted[:number_features]
+                x_train_2 = x_train[features]
+                cvScore = hyperparametrosCV(model,x_train_2,y_train)
+                scores.append(cvScore)
+        else:
+            args = [(model,copy.deepcopy(x_train),y_train,copy.deepcopy(bestFeaturesSorted),numberFeatures) for numberFeatures in range(1,totalFeatures+1)]
+            with Pool(number_of_cores) as pool:
+                # distribute computations and collect results:
+                scores = pool.starmap(UnivariateFeatureSelection.scoreModel, args)
         
         self.bestScore = max(scores)
         bestNumberFeatures = max(range(len(scores)), key=scores.__getitem__)+1
